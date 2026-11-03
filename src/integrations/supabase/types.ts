@@ -14,14 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      clinical_cases: {
+        Row: {
+          case_explanation: string | null
+          created_at: string
+          guiding_questions: Json
+          id: string
+          scenario: string
+          topic_id: string
+        }
+        Insert: {
+          case_explanation?: string | null
+          created_at?: string
+          guiding_questions: Json
+          id?: string
+          scenario: string
+          topic_id: string
+        }
+        Update: {
+          case_explanation?: string | null
+          created_at?: string
+          guiding_questions?: Json
+          id?: string
+          scenario?: string
+          topic_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinical_cases_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exam_attempts: {
         Row: {
           answers: Json
           created_at: string
           id: string
           question_ids: Json
+          question_seconds: Json | null
           score: number
           total: number
+          total_seconds: number | null
           user_id: string | null
         }
         Insert: {
@@ -29,8 +66,10 @@ export type Database = {
           created_at?: string
           id?: string
           question_ids: Json
+          question_seconds?: Json | null
           score: number
           total: number
+          total_seconds?: number | null
           user_id?: string | null
         }
         Update: {
@@ -38,8 +77,10 @@ export type Database = {
           created_at?: string
           id?: string
           question_ids?: Json
+          question_seconds?: Json | null
           score?: number
           total?: number
+          total_seconds?: number | null
           user_id?: string | null
         }
         Relationships: []
@@ -50,6 +91,8 @@ export type Database = {
           created_at: string
           front: string
           id: string
+          seen_at: string | null
+          subtopic: string | null
           topic_id: string
         }
         Insert: {
@@ -57,6 +100,8 @@ export type Database = {
           created_at?: string
           front: string
           id?: string
+          seen_at?: string | null
+          subtopic?: string | null
           topic_id: string
         }
         Update: {
@@ -64,11 +109,58 @@ export type Database = {
           created_at?: string
           front?: string
           id?: string
+          seen_at?: string | null
+          subtopic?: string | null
           topic_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "flashcards_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      highlights: {
+        Row: {
+          case_id: string | null
+          content_type: string
+          created_at: string
+          end_offset: number
+          id: string
+          start_offset: number
+          topic_id: string
+        }
+        Insert: {
+          case_id?: string | null
+          content_type: string
+          created_at?: string
+          end_offset: number
+          id?: string
+          start_offset: number
+          topic_id: string
+        }
+        Update: {
+          case_id?: string | null
+          content_type?: string
+          created_at?: string
+          end_offset?: number
+          id?: string
+          start_offset?: number
+          topic_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "highlights_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "clinical_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "highlights_topic_id_fkey"
             columns: ["topic_id"]
             isOneToOne: false
             referencedRelation: "topics"
@@ -110,30 +202,39 @@ export type Database = {
       }
       mcq_questions: {
         Row: {
+          ai_explanation: string | null
           correct_index: number
           created_at: string
           explanation: string
           id: string
           options: Json
           question: string
+          seen_at: string | null
+          subtopic: string | null
           topic_id: string
         }
         Insert: {
+          ai_explanation?: string | null
           correct_index: number
           created_at?: string
           explanation?: string
           id?: string
           options: Json
           question: string
+          seen_at?: string | null
+          subtopic?: string | null
           topic_id: string
         }
         Update: {
+          ai_explanation?: string | null
           correct_index?: number
           created_at?: string
           explanation?: string
           id?: string
           options?: Json
           question?: string
+          seen_at?: string | null
+          subtopic?: string | null
           topic_id?: string
         }
         Relationships: [
@@ -172,6 +273,28 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_clinical_case: {
+        Args: {
+          p_case_explanation: string
+          p_guiding_questions: Json
+          p_scenario: string
+          p_topic_id: string
+        }
+        Returns: string
+      }
+      add_flashcards: {
+        Args: { p_flashcards: Json; p_topic_id: string }
+        Returns: number
+      }
+      add_mcq_questions: {
+        Args: { p_mcq: Json; p_topic_id: string }
+        Returns: number
+      }
+      mark_flashcard_seen: {
+        Args: { p_flashcard_id: string }
+        Returns: undefined
+      }
+      mark_mcq_seen: { Args: { p_mcq_id: string }; Returns: undefined }
       save_generated_material: {
         Args: {
           p_clinical_case: Json
@@ -183,6 +306,26 @@ export type Database = {
           p_topic: string
         }
         Returns: string
+      }
+      set_flashcard_subtopic: {
+        Args: { p_flashcard_id: string; p_subtopic: string }
+        Returns: undefined
+      }
+      set_mcq_explanation: {
+        Args: { p_ai_explanation: string; p_mcq_id: string }
+        Returns: undefined
+      }
+      set_mcq_subtopic: {
+        Args: { p_mcq_id: string; p_subtopic: string }
+        Returns: undefined
+      }
+      update_clinical_case_content: {
+        Args: {
+          p_case_explanation: string
+          p_case_id: string
+          p_guiding_questions: Json
+        }
+        Returns: undefined
       }
     }
     Enums: {
