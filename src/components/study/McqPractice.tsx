@@ -14,6 +14,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { QuestionStem } from "@/components/study/QuestionStem";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -264,14 +265,13 @@ export function McqPractice({
               </div>
             </div>
 
-            <h2
+            <QuestionStem
               id="questao-atual"
               ref={headingRef}
               tabIndex={-1}
-              className="mt-2 text-[1.65rem] leading-[1.18] outline-none [text-wrap:pretty] sm:text-[1.9rem]"
-            >
-              {q.question}
-            </h2>
+              className="mt-2"
+              question={q.question}
+            />
 
             <ol className="mt-6 space-y-2.5" aria-label="Alternativas">
               {q.options.map((opt, oi) => {

@@ -1,3 +1,5 @@
+import { MODEL_FALLBACK, MODEL_MAIN, shouldFallback } from "./ai-config";
+
 /**
  * Pequeno utilitário de IA reaproveitando o mesmo padrão de gemini.server.ts:
  * usa a API do Gemini direto quando GEMINI_API_KEY existe, senão o gateway do Lovable.
@@ -16,27 +18,34 @@ function extractJson(raw: string): string {
 async function callModel(system: string, user: string): Promise<string> {
   const geminiKey = process.env["GEMINI_API_KEY"];
   if (geminiKey) {
-    const res = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-goog-api-key": geminiKey },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: system }] },
-          contents: [{ role: "user", parts: [{ text: user }] }],
-          generationConfig: { responseMimeType: "application/json", temperature: 0.8, maxOutputTokens: 50000 },
-        }),
-      },
-    );
-    if (!res.ok) {
-      console.error("Gemini error", res.status, await res.text());
-      throw new Error(`Erro na API do Gemini (${res.status}).`);
+    // Tenta o modelo principal; se ele estiver sem cota, congestionado ou indisponível, usa o reserva.
+    let lastStatus = 0;
+    for (const model of [MODEL_MAIN, MODEL_FALLBACK]) {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-goog-api-key": geminiKey },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: system }] },
+            contents: [{ role: "user", parts: [{ text: user }] }],
+            generationConfig: { responseMimeType: "application/json", temperature: 0.8, maxOutputTokens: 50000 },
+          }),
+        },
+      );
+      if (!res.ok) {
+        console.error("Gemini error", model, res.status, await res.text());
+        lastStatus = res.status;
+        if (model === MODEL_MAIN && shouldFallback(res.status)) continue;
+        throw new Error(`Erro na API do Gemini (${res.status}).`);
+      }
+      const json = (await res.json()) as { candidates?: { content?: { parts?: { text?: string }[] }; finishReason?: string }[] };
+      if (json.candidates?.[0]?.finishReason === "MAX_TOKENS") {
+        throw new Error("A resposta da IA foi cortada por ficar grande demais. Tente pedir uma quantidade menor.");
+      }
+      return json.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
     }
-    const json = (await res.json()) as { candidates?: { content?: { parts?: { text?: string }[] }; finishReason?: string }[] };
-    if (json.candidates?.[0]?.finishReason === "MAX_TOKENS") {
-      throw new Error("A resposta da IA foi cortada por ficar grande demais. Tente pedir uma quantidade menor.");
-    }
-    return json.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
+    throw new Error(`Erro na API do Gemini (${lastStatus}).`);
   }
 
   const lovableKey = process.env["LOVABLE_API_KEY"];

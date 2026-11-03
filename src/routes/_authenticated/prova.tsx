@@ -20,6 +20,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { delatex } from "@/lib/delatex";
+import { splitVignette } from "@/lib/vignette";
+import { QuestionStem } from "@/components/study/QuestionStem";
 import { cleanTitle, useTopicsList } from "@/lib/topics-index";
 
 export const Route = createFileRoute("/_authenticated/prova")({
@@ -439,9 +441,7 @@ function ExamPage() {
           </div>
 
           <div key={current} className="animate-fade-up">
-            <h2 className="mt-8 text-[1.65rem] leading-[1.18] [text-wrap:pretty] sm:text-[1.9rem]">
-              {questions[current].question}
-            </h2>
+            <QuestionStem className="mt-8" question={questions[current].question} />
             <ol className="mt-6 space-y-2.5" aria-label="Alternativas">
               {questions[current].options.map((opt, i) => {
                 const chosen = answers[current] === i;
@@ -669,7 +669,7 @@ function ExamPage() {
                         <span className="sr-only">
                           {ok ? "Certa. " : blank ? "Não respondida. " : "Errada. "}
                         </span>
-                        {i + 1}. {q.question}
+                        {i + 1}. {splitVignette(q.question).stem}
                       </p>
                       <span
                         className={cn(
