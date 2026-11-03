@@ -10,17 +10,391 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.18"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
-      [_ in never]: never
+      clinical_cases: {
+        Row: {
+          case_explanation: string | null
+          created_at: string
+          guiding_questions: Json
+          id: string
+          scenario: string
+          topic_id: string
+        }
+        Insert: {
+          case_explanation?: string | null
+          created_at?: string
+          guiding_questions: Json
+          id?: string
+          scenario: string
+          topic_id: string
+        }
+        Update: {
+          case_explanation?: string | null
+          created_at?: string
+          guiding_questions?: Json
+          id?: string
+          scenario?: string
+          topic_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinical_cases_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exam_attempts: {
+        Row: {
+          answers: Json
+          created_at: string
+          id: string
+          question_ids: Json
+          question_seconds: Json | null
+          score: number
+          total: number
+          total_seconds: number | null
+          user_id: string | null
+        }
+        Insert: {
+          answers: Json
+          created_at?: string
+          id?: string
+          question_ids: Json
+          question_seconds?: Json | null
+          score: number
+          total: number
+          total_seconds?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          answers?: Json
+          created_at?: string
+          id?: string
+          question_ids?: Json
+          question_seconds?: Json | null
+          score?: number
+          total?: number
+          total_seconds?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      flashcards: {
+        Row: {
+          back: string
+          created_at: string
+          front: string
+          id: string
+          seen_at: string | null
+          subtopic: string | null
+          topic_id: string
+        }
+        Insert: {
+          back: string
+          created_at?: string
+          front: string
+          id?: string
+          seen_at?: string | null
+          subtopic?: string | null
+          topic_id: string
+        }
+        Update: {
+          back?: string
+          created_at?: string
+          front?: string
+          id?: string
+          seen_at?: string | null
+          subtopic?: string | null
+          topic_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flashcards_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      highlights: {
+        Row: {
+          block_index: number
+          case_id: string | null
+          content_type: string
+          created_at: string
+          end_offset: number
+          id: string
+          start_offset: number
+          topic_id: string
+        }
+        Insert: {
+          block_index?: number
+          case_id?: string | null
+          content_type: string
+          created_at?: string
+          end_offset: number
+          id?: string
+          start_offset: number
+          topic_id: string
+        }
+        Update: {
+          block_index?: number
+          case_id?: string | null
+          content_type?: string
+          created_at?: string
+          end_offset?: number
+          id?: string
+          start_offset?: number
+          topic_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "highlights_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "clinical_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "highlights_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      materials: {
+        Row: {
+          content: Json
+          created_at: string
+          id: string
+          topic_id: string
+          type: string
+        }
+        Insert: {
+          content: Json
+          created_at?: string
+          id?: string
+          topic_id: string
+          type: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          id?: string
+          topic_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "materials_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mcq_questions: {
+        Row: {
+          ai_explanation: string | null
+          correct_index: number
+          created_at: string
+          explanation: string
+          id: string
+          options: Json
+          question: string
+          seen_at: string | null
+          subtopic: string | null
+          topic_id: string
+        }
+        Insert: {
+          ai_explanation?: string | null
+          correct_index: number
+          created_at?: string
+          explanation?: string
+          id?: string
+          options: Json
+          question: string
+          seen_at?: string | null
+          subtopic?: string | null
+          topic_id: string
+        }
+        Update: {
+          ai_explanation?: string | null
+          correct_index?: number
+          created_at?: string
+          explanation?: string
+          id?: string
+          options?: Json
+          question?: string
+          seen_at?: string | null
+          subtopic?: string | null
+          topic_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mcq_questions_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      source_claims: {
+        Row: {
+          created_at: string
+          hash: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          hash: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          hash?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      source_files: {
+        Row: {
+          created_at: string
+          hash: string
+          kind: string
+          size_bytes: number | null
+          storage_path: string
+          text: string | null
+        }
+        Insert: {
+          created_at?: string
+          hash: string
+          kind: string
+          size_bytes?: number | null
+          storage_path: string
+          text?: string | null
+        }
+        Update: {
+          created_at?: string
+          hash?: string
+          kind?: string
+          size_bytes?: number | null
+          storage_path?: string
+          text?: string | null
+        }
+        Relationships: []
+      }
+      topics: {
+        Row: {
+          created_at: string
+          id: string
+          source_hash: string | null
+          source_kind: string | null
+          source_name: string | null
+          source_text: string | null
+          title: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          source_hash?: string | null
+          source_kind?: string | null
+          source_name?: string | null
+          source_text?: string | null
+          title: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          source_hash?: string | null
+          source_kind?: string | null
+          source_name?: string | null
+          source_text?: string | null
+          title?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "topics_source_hash_fkey"
+            columns: ["source_hash"]
+            isOneToOne: false
+            referencedRelation: "source_files"
+            referencedColumns: ["hash"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      add_clinical_case: {
+        Args: {
+          p_case_explanation: string
+          p_guiding_questions: Json
+          p_scenario: string
+          p_topic_id: string
+        }
+        Returns: string
+      }
+      add_flashcards: {
+        Args: { p_flashcards: Json; p_topic_id: string }
+        Returns: number
+      }
+      add_mcq_questions: {
+        Args: { p_mcq: Json; p_topic_id: string }
+        Returns: number
+      }
+      mark_flashcard_seen: {
+        Args: { p_flashcard_id: string }
+        Returns: undefined
+      }
+      mark_mcq_seen: { Args: { p_mcq_id: string }; Returns: undefined }
+      save_generated_material: {
+        Args: {
+          p_clinical_case: Json
+          p_flashcards: Json
+          p_mcq: Json
+          p_mindmap: Json
+          p_review_questions: Json
+          p_summary: string
+          p_topic: string
+        }
+        Returns: string
+      }
+      set_flashcard_subtopic: {
+        Args: { p_flashcard_id: string; p_subtopic: string }
+        Returns: undefined
+      }
+      set_mcq_explanation: {
+        Args: { p_ai_explanation: string; p_mcq_id: string }
+        Returns: undefined
+      }
+      set_mcq_subtopic: {
+        Args: { p_mcq_id: string; p_subtopic: string }
+        Returns: undefined
+      }
+      update_clinical_case_content: {
+        Args: {
+          p_case_explanation: string
+          p_case_id: string
+          p_guiding_questions: Json
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

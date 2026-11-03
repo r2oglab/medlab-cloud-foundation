@@ -4,19 +4,11 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/*
- * Design system definition.
- *
- * The @theme inline block maps CSS custom properties to Tailwind utility
- * classes (e.g. --color-primary -> bg-primary, text-primary).
- *
- * The :root and .dark blocks define the actual color values using oklch.
- * All colors MUST use oklch format.
- *
- * To add a new semantic color:
- * 1. Add the variable to :root (light value) and .dark (dark value)
- * 2. Register it in @theme inline as --color-<name>: var(--<name>)
- */
+/* =====================================================================
+   MedLab · Caderno
+   Tinta, papel e marca-texto. Um único destaque (o amarelo do grifo),
+   azul-caneta só para foco e links, e tons pastel só para os ramos.
+   ===================================================================== */
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
@@ -42,6 +34,8 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -51,6 +45,12 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+  --color-branch-1: var(--branch-1);
+  --color-branch-2: var(--branch-2);
+  --color-branch-3: var(--branch-3);
+  --color-branch-4: var(--branch-4);
+  --color-branch-5: var(--branch-5);
+  --color-branch-6: var(--branch-6);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -59,77 +59,153 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Cores próprias do Caderno (viram utilitários: bg-hl, text-pen, bg-tint-1, text-tint-1-fg…) */
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-pen: var(--pen);
+  --color-hl: var(--hl);
+  --color-tint-1: var(--tint-1);
+  --color-tint-1-fg: var(--tint-1-fg);
+  --color-tint-2: var(--tint-2);
+  --color-tint-2-fg: var(--tint-2-fg);
+  --color-tint-3: var(--tint-3);
+  --color-tint-3-fg: var(--tint-3-fg);
+  --color-tint-4: var(--tint-4);
+  --color-tint-4-fg: var(--tint-4-fg);
+  --color-tint-5: var(--tint-5);
+  --color-tint-5-fg: var(--tint-5-fg);
+
+  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Instrument Serif", ui-serif, Georgia, serif;
+  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Sombras quase invisíveis: no Caderno quem separa as coisas é a linha, não a sombra */
+  --shadow-soft: 0 1px 2px rgb(26 25 23 / 4%);
+  --shadow-lift: 0 1px 2px rgb(26 25 23 / 5%), 0 10px 28px -18px rgb(26 25 23 / 22%);
+
+  --animate-fade-up: fade-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.984 0.003 247.858);
-  --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.208 0.042 265.755);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.968 0.007 247.896);
-  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
-  --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.704 0.04 256.788);
+  color-scheme: light;
+  --radius: 0.5rem;
+
+  /* Base */
+  --paper: #faf9f6;
+  --ink: #1a1917;
+  --pen: #2346a8;
+  --hl: #ffe27a;
+
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: #ffffff;
+  --card-foreground: var(--ink);
+  --popover: #ffffff;
+  --popover-foreground: var(--ink);
+  --primary: var(--ink);
+  --primary-foreground: var(--paper);
+  --secondary: #f6edcc;
+  --secondary-foreground: #6b5110;
+  --muted: #f4f2ed;
+  --muted-foreground: #6b665e;
+  --accent: #efebe3;
+  --accent-foreground: var(--ink);
+  --destructive: #9f2f2d;
+  --destructive-foreground: #ffffff;
+  --success: #3d5a2c;
+  --success-foreground: #ffffff;
+  --border: #e6e1d8;
+  --input: #ddd7cc;
+  --ring: var(--pen);
+
+  /* Pastéis dos ramos (fundo + texto da mesma família, todos acima de 6:1) */
+  --tint-1: #e5eddf;
+  --tint-1-fg: #3d5a2c;
+  --tint-2: #e2eaf6;
+  --tint-2-fg: #2b4c7e;
+  --tint-3: #f5e3de;
+  --tint-3-fg: #8a3a2b;
+  --tint-4: #f6edcc;
+  --tint-4-fg: #6b5110;
+  --tint-5: #ece6f4;
+  --tint-5-fg: #56437f;
+
+  --chart-1: var(--ink);
+  --chart-2: var(--pen);
+  --chart-3: var(--tint-1-fg);
+  --chart-4: var(--tint-4-fg);
+  --chart-5: var(--tint-3-fg);
+  --branch-1: var(--tint-1-fg);
+  --branch-2: var(--tint-2-fg);
+  --branch-3: var(--tint-3-fg);
+  --branch-4: var(--tint-4-fg);
+  --branch-5: var(--tint-5-fg);
+  --branch-6: var(--pen);
+
+  --sidebar: #f4f2ed;
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--ink);
+  --sidebar-primary-foreground: var(--paper);
+  --sidebar-accent: #ffffff;
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--pen);
 }
 
+/* Tema escuro (ainda não tem botão para ligar; fica pronto para o futuro) */
 .dark {
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.208 0.042 265.755);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.208 0.042 265.755);
-  --sidebar-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.279 0.041 260.031);
-  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.551 0.027 264.364);
+  color-scheme: dark;
+  --paper: #161513;
+  --ink: #ece8e1;
+  --pen: #93a8f0;
+  --hl: #e8c75a;
+
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: #1e1c19;
+  --card-foreground: var(--ink);
+  --popover: #1e1c19;
+  --popover-foreground: var(--ink);
+  --primary: var(--ink);
+  --primary-foreground: #161513;
+  --secondary: #3a3220;
+  --secondary-foreground: #f1dfa6;
+  --muted: #24221f;
+  --muted-foreground: #a39e95;
+  --accent: #2a2824;
+  --accent-foreground: var(--ink);
+  --destructive: #e07a6f;
+  --destructive-foreground: #161513;
+  --success: #9cc28a;
+  --success-foreground: #161513;
+  --border: rgb(255 255 255 / 9%);
+  --input: rgb(255 255 255 / 14%);
+  --ring: var(--pen);
+
+  --tint-1: #26301f;
+  --tint-1-fg: #bcd3ac;
+  --tint-2: #1f2a3a;
+  --tint-2-fg: #aec4ea;
+  --tint-3: #3a241f;
+  --tint-3-fg: #efb6a6;
+  --tint-4: #3a3220;
+  --tint-4-fg: #f1dfa6;
+  --tint-5: #2c2539;
+  --tint-5-fg: #cdbdf0;
+
+  --sidebar: #1b1a17;
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--ink);
+  --sidebar-primary-foreground: #161513;
+  --sidebar-accent: #2a2824;
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: rgb(255 255 255 / 9%);
+  --sidebar-ring: var(--pen);
 }
 
 @layer base {
@@ -137,8 +213,296 @@
     border-color: var(--color-border);
   }
 
+  html {
+    font-family: var(--font-sans);
+    -webkit-text-size-adjust: 100%;
+    /* toque: sem atraso de duplo-toque e sem o flash cinza do iOS (o app já tem estados de foco/pressão) */
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Rolar dentro de gaveta/janela não arrasta a página de trás */
+  [role="dialog"],
+  [role="alertdialog"] {
+    overscroll-behavior: contain;
+  }
+
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Instrument Serif só tem peso 400: nada de negrito falso nos títulos */
+  h1,
+  h2,
+  h3,
+  .font-serif {
+    font-synthesis-weight: none;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+  }
+
+  p,
+  li {
+    text-wrap: pretty;
+  }
+
+  ::selection {
+    background-color: rgb(35 70 168 / 16%);
+  }
+
+  /* Foco sempre visível em azul-caneta. :where() não tem especificidade,
+     então qualquer focus-visible:* dos componentes continua mandando. */
+  :where(a, button, summary, [role="button"], [role="tab"], [tabindex]):focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+
+  kbd {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    line-height: 1;
+    padding: 0.2rem 0.4rem;
+    border: 1px solid var(--color-border);
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    background: var(--color-card);
+    color: var(--color-foreground);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Linha fina no lugar de sombra: o "card" do Caderno */
+@utility card-soft {
+  background-color: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-soft);
+}
+
+@utility tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Traço de marca-texto: o motivo visual do Caderno */
+@utility grifo {
+  background-color: var(--color-hl);
+  color: var(--color-ink);
+  border-radius: 0.2em 0.4em 0.3em 0.5em;
+  padding: 0 0.08em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+@utility flip-scene {
+  perspective: 1400px;
+}
+
+@utility flip-inner {
+  transform-style: preserve-3d;
+  transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+}
+
+@utility flip-face {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+@utility flip-back {
+  transform: rotateY(180deg);
+}
+
+@utility flipped {
+  transform: rotateY(180deg);
+}
+
+/* Texto do resumo e do markdown */
+.prose-study h1,
+.prose-study h2,
+.prose-study h3 {
+  color: var(--color-foreground);
+  margin-top: 1.4em;
+  margin-bottom: 0.4em;
+  line-height: 1.15;
+}
+.prose-study h1 { font-size: 2rem; }
+.prose-study h2 { font-size: 1.75rem; }
+.prose-study h3 { font-size: 1.35rem; }
+.prose-study p { margin: 0.75em 0; line-height: 1.75; font-size: 1.0625rem; max-width: 68ch; }
+.prose-study ul,
+.prose-study ol { margin: 0.75em 0; padding-left: 1.4em; line-height: 1.7; font-size: 1.0625rem; max-width: 68ch; }
+.prose-study ul { list-style: disc; }
+.prose-study ol { list-style: decimal; }
+.prose-study li { margin: 0.25em 0; }
+.prose-study li::marker { color: var(--color-muted-foreground); }
+.prose-study strong { color: var(--color-foreground); font-weight: 600; }
+.prose-study > :first-child { margin-top: 0; }
+
+/* Grifo de texto (modo máscara) */
+mark.lab-highlight {
+  background-color: var(--color-hl);
+  color: inherit;
+  border-radius: 0.2em 0.4em 0.3em 0.5em;
+  padding: 0.05em 0.04em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+.hide-marks mark.lab-highlight {
+  background-color: transparent;
+}
+
+/* Editor do Resumo: o padding/borda precisam ir no .ProseMirror de verdade
+   (é ele que é a área editável — o wrapper do EditorContent é só um <div> por fora). */
+.resumo-editor .ProseMirror {
+  outline: none;
+  min-height: 200px;
+}
+.resumo-editor .ProseMirror h2,
+.resumo-editor .ProseMirror h3 {
+  scroll-margin-top: 5rem;
+}
+.resumo-editor.editing .ProseMirror {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  padding: 1rem;
+}
+.resumo-editor.editing .ProseMirror:focus-visible {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px rgb(35 70 168 / 14%);
+}
+/* Esconde a barra de rolagem em telas de tablet/celular (rolagem continua funcionando) */
+@media (max-width: 1024px) {
+  html {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  html::-webkit-scrollbar {
+    display: none;
+  }
+}
+/* Tabelas no editor do Resumo */
+.resumo-editor .tableWrapper {
+  overflow-x: auto;
+  margin: 1em 0;
+}
+.resumo-editor table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+  font-size: 0.95rem;
+}
+.resumo-editor th,
+.resumo-editor td {
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.75rem;
+  vertical-align: top;
+  min-width: 6rem;
+}
+.resumo-editor th {
+  background: var(--muted);
+  font-weight: 600;
+  text-align: left;
+}
+.resumo-editor th p,
+.resumo-editor td p {
+  margin: 0;
+}
+.resumo-editor .selectedCell {
+  background: var(--accent);
+}
+
+/* Esquema: item coberto (riscos de "linha de caderno") */
+.esquema-cover {
+  background: repeating-linear-gradient(90deg, rgb(26 25 23 / 20%) 0 6px, transparent 6px 10px);
+}
+
+/* Esquema: versão para imprimir / salvar em PDF (montada no <body> só na hora de imprimir) */
+.esquema-portal {
+  display: none;
+}
+@media print {
+  @page {
+    margin: 14mm;
+  }
+  body:has(> .esquema-portal) > *:not(.esquema-portal) {
+    display: none !important;
+  }
+  .esquema-portal {
+    display: block;
+    color: var(--ink);
+    font-family: var(--font-sans);
+  }
+  .esquema-portal * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .esquema-print-kicker {
+    font-size: 9pt;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #6b665e;
+  }
+  .esquema-print-title {
+    font-family: var(--font-serif);
+    font-size: 26pt;
+    line-height: 1.1;
+    margin: 4pt 0 14pt;
+  }
+  .esquema-print-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8pt;
+  }
+  .esquema-print-block {
+    border-radius: 8pt;
+    padding: 10pt 12pt;
+    break-inside: avoid;
+  }
+  .esquema-print-block h2 {
+    font-family: var(--font-serif);
+    font-size: 16pt;
+    margin-bottom: 4pt;
+  }
+  .esquema-print-block li {
+    font-size: 10.5pt;
+    line-height: 1.4;
+    padding: 4pt 0;
+    border-top: 0.5pt solid rgb(26 25 23 / 12%);
+    min-height: 18pt;
+  }
+  .esquema-print-block li:first-child {
+    border-top: 0;
+  }
+  .esquema-print-blank {
+    display: block;
+    height: 12pt;
+    border-bottom: 0.75pt dotted rgb(26 25 23 / 45%);
+  }
+}
+
+/* Movimento reduzido: sem giro de cartão nem animações de entrada */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
