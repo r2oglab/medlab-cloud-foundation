@@ -39,6 +39,8 @@ import { delatex } from "@/lib/delatex";
 import { cleanTitle } from "@/lib/topics-index";
 import { folderPath, useFolders } from "@/lib/folders";
 import { MoveTopicDialog } from "@/components/folders/FolderDialogs";
+import { EssayPractice } from "@/components/study/EssayPractice";
+import { useEssays } from "@/lib/essays";
 import { cn } from "@/lib/utils";
 import {
   AlertDialog,
@@ -169,6 +171,7 @@ const TABS = [
   { v: "esquema", label: "Esquema" },
   { v: "flashcards", label: "Flashcards" },
   { v: "questoes", label: "Questões" },
+  { v: "discursivas", label: "Discursivas" },
   { v: "caso", label: "Caso clínico" },
   { v: "revisao", label: "Revisão" },
 ] as const;
@@ -268,6 +271,7 @@ function TopicPage() {
   const [maskMode, setMaskMode] = useState(true);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [moving, setMoving] = useState(false);
+  const essays = useEssays(id);
   const folders = useFolders();
   const [renaming, setRenaming] = useState(false);
   // "Renomear" no menu: ao fechar, o foco vai para o campo do título (e não volta ao botão ⋯)
@@ -429,6 +433,9 @@ function TopicPage() {
   const counts: Record<string, string | null> = {
     flashcards: d.flashcards.length ? `${fcSeen}/${d.flashcards.length}` : null,
     questoes: d.mcq.length ? `${mcSeen}/${d.mcq.length}` : null,
+    discursivas: essays.data?.questions.length
+      ? `${essays.data.questions.filter((q) => essays.data.answers[q.id]?.length).length}/${essays.data.questions.length}`
+      : null,
   };
 
   const mcqCounts = d.mcq.reduce<Record<string, number>>((acc, m) => {
@@ -728,6 +735,9 @@ function TopicPage() {
         </TabsContent>
         <TabsContent value="questoes" className="mt-6 animate-fade-up">
           <McqPractice questions={d.mcq} topicId={id} focus={practiceFocus} />
+        </TabsContent>
+        <TabsContent value="discursivas" className="mt-6 animate-fade-up">
+          <EssayPractice topicId={id} />
         </TabsContent>
         <TabsContent value="caso" className="mt-6 animate-fade-up">
           <ClinicalCase cases={d.cases} topicId={id} maskMode={maskMode} />
