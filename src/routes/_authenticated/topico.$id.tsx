@@ -24,6 +24,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Flashcards } from "@/components/study/Flashcards";
 import { McqPractice } from "@/components/study/McqPractice";
 import { Esquema, type PracticeTarget } from "@/components/study/Esquema";
+import { Flowchart } from "@/components/study/Flowchart";
+import { Segmented } from "@/components/study/Segmented";
 import { ClinicalCase } from "@/components/study/ClinicalCase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -285,6 +287,7 @@ function TopicPage() {
   const summaryMigrated = useRef(false);
   const [writingOwn, setWritingOwn] = useState(false);
   const [summaryVersion, setSummaryVersion] = useState(0);
+  const [esquemaView, setEsquemaView] = useState<"ramos" | "fluxograma">("ramos");
   const [viewerOpen, setViewerOpen] = useState(false);
   const { aba } = Route.useSearch();
   const tab: TabId = aba && TABS.some((t) => t.v === aba) ? aba : "resumo";
@@ -508,7 +511,12 @@ function TopicPage() {
             Grifos
           </button>
           {sourcePending.data ? (
-            <Button size="sm" variant="outline" disabled className="hidden h-9 text-sm sm:inline-flex">
+            <Button
+              size="sm"
+              variant="outline"
+              disabled
+              className="hidden h-9 text-sm sm:inline-flex"
+            >
               <Loader2 className="size-4 animate-spin" aria-hidden /> Convertendo…
             </Button>
           ) : (
@@ -725,7 +733,19 @@ function TopicPage() {
           />
         </TabsContent>
         <TabsContent value="esquema" className="mt-6 animate-fade-up">
-          {d.mindmap ? (
+          <Segmented
+            label="Formato do esquema"
+            value={esquemaView}
+            onChange={setEsquemaView}
+            options={[
+              { value: "ramos", label: "Ramos" },
+              { value: "fluxograma", label: "Fluxograma" },
+            ]}
+            className="mb-6"
+          />
+          {esquemaView === "fluxograma" ? (
+            <Flowchart topicId={id} />
+          ) : d.mindmap ? (
             <Esquema
               map={d.mindmap}
               topicId={id}
