@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Segmented } from "@/components/study/Segmented";
 import { supabase } from "@/integrations/supabase/client";
-import { aiErrorMessage } from "@/lib/ai-busy";
+import { aiErrorMessage, withAiRetry } from "@/lib/ai-busy";
 import {
   FLOW_FONT_SIZE,
   FLOW_KINDS,
@@ -71,6 +71,7 @@ export function Flowchart({ topicId }: { topicId: string }) {
   const [view, setView] = useState<"diagrama" | "lista">("diagrama");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [retryMsg, setRetryMsg] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
 
   const q = useQuery({
@@ -94,7 +95,10 @@ export function Flowchart({ topicId }: { topicId: string }) {
     setBusy(true);
     setError(null);
     try {
-      await generate({ data: { topic_id: topicId, kind } });
+      await withAiRetry(
+        () => generate({ data: { topic_id: topicId, kind } }),
+        (wait) => setRetryMsg(`A IA está congestionada. Tentando de novo em ${wait} s…`),
+      );
       await queryClient.invalidateQueries({ queryKey: ["flowchart", topicId] });
       toast.success("Fluxograma pronto.");
     } catch (e) {
@@ -103,6 +107,7 @@ export function Flowchart({ topicId }: { topicId: string }) {
       toast.error(msg);
     } finally {
       setBusy(false);
+      setRetryMsg(null);
     }
   }
 
@@ -145,8 +150,14 @@ export function Flowchart({ topicId }: { topicId: string }) {
         )}
       </div>
 
-      <p aria-live="polite" className={cn("mt-3 text-sm", error ? "text-destructive" : "sr-only")}>
-        {error ?? (busy ? "Montando o fluxograma. Leva uns 20 segundos." : "")}
+      <p
+        aria-live="polite"
+        className={cn(
+          "mt-3 text-sm",
+          error ? "text-destructive" : retryMsg ? "text-muted-foreground" : "sr-only",
+        )}
+      >
+        {error ?? retryMsg ?? (busy ? "Montando o fluxograma. Leva uns 20 segundos." : "")}
       </p>
 
       {q.isLoading ? (

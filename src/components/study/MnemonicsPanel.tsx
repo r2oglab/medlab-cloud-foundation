@@ -5,7 +5,7 @@ import { Loader2, RotateCcw, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { aiErrorMessage } from "@/lib/ai-busy";
+import { aiErrorMessage, withAiRetry } from "@/lib/ai-busy";
 import { cn } from "@/lib/utils";
 import { displayInitial, phraseParts, type Mnemonic } from "@/lib/mnemonics";
 import { generateMnemonics } from "@/lib/summary-tools.functions";
@@ -61,12 +61,19 @@ export function MnemonicsPanel({ topicId }: { topicId: string }) {
   async function run() {
     setBusy(true);
     try {
-      await generate({ data: { topic_id: topicId } });
+      await withAiRetry(
+        () => generate({ data: { topic_id: topicId } }),
+        (wait) =>
+          toast.loading(`A IA está congestionada. Tentando de novo em ${wait} s…`, {
+            id: "mnemonicos-espera",
+          }),
+      );
       await queryClient.invalidateQueries({ queryKey: ["mnemonics", topicId] });
       toast.success("Mnemônicos prontos.");
     } catch (e) {
       toast.error(aiErrorMessage(e, "Não deu para criar os mnemônicos."));
     } finally {
+      toast.dismiss("mnemonicos-espera");
       setBusy(false);
     }
   }

@@ -25,7 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { aiErrorMessage } from "@/lib/ai-busy";
+import { aiErrorMessage, withAiRetry } from "@/lib/ai-busy";
 import { cn } from "@/lib/utils";
 import {
   escapeHtml,
@@ -154,6 +154,7 @@ function CompareDialog({ open, onOpenChange, topicId, html, sections, onChanged 
   const [place, setPlace] = useState("nova");
   const [busy, setBusy] = useState<"gerando" | "salvando" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
   const [result, setResult] = useState<{ title: string; html: string } | null>(null);
 
   useEffect(() => {
@@ -185,10 +186,16 @@ function CompareDialog({ open, onOpenChange, topicId, html, sections, onChanged 
     setError(null);
     setBusy("gerando");
     try {
-      setResult(await generate({ data: { topic_id: topicId, query: query.trim() } }));
+      setResult(
+        await withAiRetry(
+          () => generate({ data: { topic_id: topicId, query: query.trim() } }),
+          (wait) => setNote(`A IA está congestionada. Tentando de novo em ${wait} s…`),
+        ),
+      );
     } catch (err) {
       setError(aiErrorMessage(err, "Não deu para montar a tabela."));
     } finally {
+      setNote(null);
       setBusy(null);
     }
   }
@@ -254,8 +261,14 @@ function CompareDialog({ open, onOpenChange, topicId, html, sections, onChanged 
                 {busy === "gerando" ? "Montando…" : result ? "Gerar de novo" : "Gerar tabela"}
               </Button>
             </div>
-            <p aria-live="polite" className={cn("text-sm", error ? "text-destructive" : "sr-only")}>
-              {error ?? (busy === "gerando" ? "Montando a tabela." : "")}
+            <p
+              aria-live="polite"
+              className={cn(
+                "text-sm",
+                error ? "text-destructive" : note ? "text-muted-foreground" : "sr-only",
+              )}
+            >
+              {error ?? note ?? (busy === "gerando" ? "Montando a tabela." : "")}
             </p>
           </form>
 
@@ -323,6 +336,7 @@ function ExplainDialog({ open, onOpenChange, topicId, html, sections, onChanged 
   const [focus, setFocus] = useState("");
   const [busy, setBusy] = useState<"gerando" | "salvando" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
   const [result, setResult] = useState<{ html: string; title: string } | null>(null);
 
   useEffect(() => {
@@ -342,19 +356,24 @@ function ExplainDialog({ open, onOpenChange, topicId, html, sections, onChanged 
     try {
       const f = focus.trim();
       setResult(
-        await explain({
-          data: {
-            topic_id: topicId,
-            section_title: chosen.title,
-            section_text: chosen.text.slice(0, 12000) || chosen.title,
-            mode,
-            ...(f ? { focus: f.slice(0, 160) } : {}),
-          },
-        }),
+        await withAiRetry(
+          () =>
+            explain({
+              data: {
+                topic_id: topicId,
+                section_title: chosen.title,
+                section_text: chosen.text.slice(0, 12000) || chosen.title,
+                mode,
+                ...(f ? { focus: f.slice(0, 160) } : {}),
+              },
+            }),
+          (wait) => setNote(`A IA está congestionada. Tentando de novo em ${wait} s…`),
+        ),
       );
     } catch (err) {
       setError(aiErrorMessage(err, "Não deu para explicar esta seção."));
     } finally {
+      setNote(null);
       setBusy(null);
     }
   }
@@ -452,9 +471,12 @@ function ExplainDialog({ open, onOpenChange, topicId, html, sections, onChanged 
 
           <p
             aria-live="polite"
-            className={cn("mt-2 text-sm", error ? "text-destructive" : "sr-only")}
+            className={cn(
+              "mt-2 text-sm",
+              error ? "text-destructive" : note ? "text-muted-foreground" : "sr-only",
+            )}
           >
-            {error ?? (busy === "gerando" ? "Escrevendo a explicação." : "")}
+            {error ?? note ?? (busy === "gerando" ? "Escrevendo a explicação." : "")}
           </p>
 
           {result && (
