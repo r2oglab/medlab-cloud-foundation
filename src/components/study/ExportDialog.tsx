@@ -23,6 +23,7 @@ import {
 } from "@/lib/export-doc";
 import type { FlowContent } from "@/lib/flow";
 import type { Mnemonic } from "@/lib/mnemonics";
+import { delatex } from "@/lib/delatex";
 import { useNotes } from "@/lib/notes";
 import { cn } from "@/lib/utils";
 
@@ -98,18 +99,23 @@ export function ExportDialog({
   const baseId = useId();
 
   const notes = useNotes(topicId);
+  // Busca o resumo direto do banco ao abrir: a página guarda uma cópia que pode estar
+  // alguns minutos atrasada (grifos e edições recentes ficariam de fora)
   const extras = useQuery({
     queryKey: ["export-materiais", topicId],
     enabled: open,
+    staleTime: 0,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("materials")
         .select("type, content")
         .eq("topic_id", topicId)
-        .in("type", ["mnemonics", "flowchart"]);
+        .in("type", ["summary", "mnemonics", "flowchart"]);
       if (error) throw error;
       const byType = new Map((data ?? []).map((m) => [m.type, m.content]));
+      const summary = byType.get("summary") as { html?: string } | undefined;
       return {
+        summaryHtml: summary?.html != null ? delatex(summary.html, "html") : null,
         mnemonics: ((byType.get("mnemonics") as { items?: Mnemonic[] } | undefined)?.items ??
           []) as Mnemonic[],
         flows: ((byType.get("flowchart") as Partial<FlowContent> | undefined)?.flows ??
@@ -117,11 +123,20 @@ export function ExportDialog({
       };
     },
   });
+  const { refetch: refetchExtras } = extras;
+  const { refetch: refetchNotes } = notes;
+  useEffect(() => {
+    if (!open) return;
+    void refetchExtras();
+    void refetchNotes();
+  }, [open, refetchExtras, refetchNotes]);
+
+  const liveSummary = extras.data?.summaryHtml ?? summaryHtml;
 
   const counts: Record<ExportPart, number> = {
-    resumo: summaryHtml.replace(/<[^>]+>/g, "").trim() ? 1 : 0,
+    resumo: liveSummary.replace(/<[^>]+>/g, "").trim() ? 1 : 0,
     notas: notes.data?.length ?? 0,
-    grifos: (summaryHtml.match(/<mark/g) ?? []).length,
+    grifos: (liveSummary.match(/<mark/g) ?? []).length,
     mnemonicos: extras.data?.mnemonics.length ?? 0,
     fluxogramas: Object.values(extras.data?.flows ?? {}).filter(Boolean).length,
     flashcards: flashcards.length,
@@ -130,7 +145,7 @@ export function ExportDialog({
   };
 
   const chosen = PART_LABELS.filter((p) => parts.has(p.part) && counts[p.part] > 0);
-  const loading = notes.isLoading || extras.isLoading;
+  const loading = notes.isFetching || extras.isFetching;
 
   function toggle(part: ExportPart, on: boolean) {
     setParts((prev) => {
@@ -144,7 +159,7 @@ export function ExportDialog({
   const input = useMemo<ExportInput>(
     () => ({
       title,
-      summaryHtml,
+      summaryHtml: liveSummary,
       notes: notes.data ?? [],
       mnemonics: extras.data?.mnemonics ?? [],
       flows: extras.data?.flows ?? {},
@@ -152,7 +167,7 @@ export function ExportDialog({
       mcq,
       review,
     }),
-    [title, summaryHtml, notes.data, extras.data, flashcards, mcq, review],
+    [title, liveSummary, notes.data, extras.data, flashcards, mcq, review],
   );
 
   // PDF: monta o documento no <body>, abre a impressão e limpa depois
@@ -255,7 +270,7 @@ export function ExportDialog({
                       <CheckRow
                         id={`${id}-notas`}
                         label="Minhas notas"
-                        hint={counts.notas ? String(counts.notas) : "nenhuma"}
+                        hint={loading ? "…" : counts.notas ? String(counts.notas) : "nenhuma"}
                         checked={counts.notas > 0 && parts.has("notas")}
                         disabled={counts.notas === 0}
                         onChange={(on) => toggle("notas", on)}
@@ -263,7 +278,7 @@ export function ExportDialog({
                       <CheckRow
                         id={`${id}-grifos`}
                         label="Grifos em amarelo"
-                        hint={counts.grifos ? "" : "nenhum"}
+                        hint={loading ? "…" : counts.grifos ? "" : "nenhum"}
                         checked={counts.grifos > 0 && parts.has("grifos")}
                         disabled={counts.grifos === 0}
                         onChange={(on) => toggle("grifos", on)}
