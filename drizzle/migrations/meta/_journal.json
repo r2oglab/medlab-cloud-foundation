@@ -1,5 +1,41 @@
 {
   "version": "7",
   "dialect": "postgresql",
-  "entries": []
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1793672880020,
+      "tag": "0000_20260917224358_c44da3eb_a68c_4619_b0b7_afbddbe63d01",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793672890817,
+      "tag": "0001_20260918010000_privileged_write_function",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793672900209,
+      "tag": "0002_20260918020000_hide_exam_attempts",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793672909973,
+      "tag": "0003_20260918030000_add_user_auth_and_privacy",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793672941945,
+      "tag": "0004_20260919000000_feature_foundation",
+      "breakpoints": true
+    }
+  ]
 }

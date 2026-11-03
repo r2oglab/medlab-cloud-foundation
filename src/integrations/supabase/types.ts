@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.18"
   }
   public: {
     Tables: {
@@ -125,7 +125,6 @@ export type Database = {
       }
       highlights: {
         Row: {
-          block_index: number
           case_id: string | null
           content_type: string
           created_at: string
@@ -135,7 +134,6 @@ export type Database = {
           topic_id: string
         }
         Insert: {
-          block_index?: number
           case_id?: string | null
           content_type: string
           created_at?: string
@@ -145,7 +143,6 @@ export type Database = {
           topic_id: string
         }
         Update: {
-          block_index?: number
           case_id?: string | null
           content_type?: string
           created_at?: string
@@ -250,91 +247,26 @@ export type Database = {
           },
         ]
       }
-      source_claims: {
-        Row: {
-          created_at: string
-          hash: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          hash: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          hash?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      source_files: {
-        Row: {
-          created_at: string
-          hash: string
-          kind: string
-          size_bytes: number | null
-          storage_path: string
-          text: string | null
-        }
-        Insert: {
-          created_at?: string
-          hash: string
-          kind: string
-          size_bytes?: number | null
-          storage_path: string
-          text?: string | null
-        }
-        Update: {
-          created_at?: string
-          hash?: string
-          kind?: string
-          size_bytes?: number | null
-          storage_path?: string
-          text?: string | null
-        }
-        Relationships: []
-      }
       topics: {
         Row: {
           created_at: string
           id: string
-          source_hash: string | null
-          source_kind: string | null
-          source_name: string | null
-          source_text: string | null
           title: string
           user_id: string | null
         }
         Insert: {
           created_at?: string
           id?: string
-          source_hash?: string | null
-          source_kind?: string | null
-          source_name?: string | null
-          source_text?: string | null
           title: string
           user_id?: string | null
         }
         Update: {
           created_at?: string
           id?: string
-          source_hash?: string | null
-          source_kind?: string | null
-          source_name?: string | null
-          source_text?: string | null
           title?: string
           user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "topics_source_hash_fkey"
-            columns: ["source_hash"]
-            isOneToOne: false
-            referencedRelation: "source_files"
-            referencedColumns: ["hash"]
-          },
-        ]
+        Relationships: []
       }
     }
     Views: {
