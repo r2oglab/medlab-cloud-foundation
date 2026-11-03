@@ -15,6 +15,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { QuestionStem } from "@/components/study/QuestionStem";
+import { recordAttempts } from "@/lib/attempts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -105,6 +106,10 @@ export function McqPractice({
   async function answer(oi: number, item: McqRow) {
     if (answers[item.id] !== undefined) return;
     setAnswers((a) => ({ ...a, [item.id]: oi }));
+    // Registra a resposta (base do Caderno de erros e das estatísticas)
+    void recordAttempts([{ question_id: item.id, chosen_index: oi, source: "pratica" }]).then(() =>
+      queryClient.invalidateQueries({ queryKey: ["mcq-attempts"] }),
+    );
     setAnnounce(
       oi === item.correct_index
         ? "Resposta correta."

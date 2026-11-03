@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { ChevronRight, Ellipsis, FolderPlus, GraduationCap, LogOut, NotebookPen, Plus, Search } from "lucide-react";
+import { BookX, ChevronRight, Ellipsis, FolderPlus, GraduationCap, LogOut, NotebookPen, Plus, Search } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { BrandMark, Wordmark } from "@/components/BrandMark";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { buildFolderTree, useFolderActions, useFolders, type Folder } from "@/lib/folders";
 import type { TopicListItem } from "@/lib/topics-index";
+import { computeMistakes, useAttempts } from "@/lib/attempts";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { cleanTitle, progressPct, useTopicsList, useTopicsProgress } from "@/lib/topics-index";
 import { cn } from "@/lib/utils";
@@ -118,6 +119,8 @@ function SidebarContent({ pathname, onNewTopic }: { pathname: string; onNewTopic
   const topics = useTopicsList();
   const progress = useTopicsProgress();
   const folders = useFolders();
+  const attempts = useAttempts();
+  const pendingMistakes = useMemo(() => computeMistakes(attempts.data ?? []).pending.length, [attempts.data]);
   const { create, rename, moveTopic } = useFolderActions();
   // Arrastar tópico para uma pasta (no computador). No celular/teclado: "⋯ → Mover para pasta".
   const [dragging, setDragging] = useState(false);
@@ -391,6 +394,21 @@ function SidebarContent({ pathname, onNewTopic }: { pathname: string; onNewTopic
         >
           <GraduationCap className="size-[18px]" aria-hidden />
           Modo Prova
+        </Link>
+        <Link
+          to="/erros"
+          className={navItem(pathname.startsWith("/erros"))}
+          aria-current={pathname.startsWith("/erros") ? "page" : undefined}
+        >
+          <BookX className="size-[18px]" aria-hidden />
+          Caderno de erros
+          {pendingMistakes > 0 && (
+            <span className="ml-auto rounded-full bg-tint-3 px-2 py-0.5 text-xs font-medium text-tint-3-fg tnum">
+              <span className="sr-only">, </span>
+              {pendingMistakes}
+              <span className="sr-only"> para revisar</span>
+            </span>
+          )}
         </Link>
       </nav>
 

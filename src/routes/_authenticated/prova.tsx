@@ -1,4 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { ArrowLeft, ArrowRight, Check, Clock, Minus, RotateCcw, X } from "lucide-react";
@@ -24,6 +25,7 @@ import { splitVignette } from "@/lib/vignette";
 import { QuestionStem } from "@/components/study/QuestionStem";
 import { cleanTitle, useTopicsList } from "@/lib/topics-index";
 import { useFolders } from "@/lib/folders";
+import { recordAttempts } from "@/lib/attempts";
 
 export const Route = createFileRoute("/_authenticated/prova")({
   head: () => ({
@@ -92,6 +94,7 @@ function ExamPage() {
   const topics = useTopicsList();
   const [confirmExit, setConfirmExit] = useState(false);
   const [onlyWrong, setOnlyWrong] = useState(false);
+  const queryClient = useQueryClient();
 
   async function startExam() {
     if (selected.length === 0) {
@@ -196,21 +199,60 @@ function ExamPage() {
     setStage("result");
     setOnlyWrong(false);
     window.scrollTo(0, 0);
-    const { error } = await supabase.from("exam_attempts").insert({
-      question_ids: questions.map((q) => q.id),
-      answers,
-      score,
-      total: questions.length,
-      question_seconds: seconds,
-      total_seconds: totalSeconds,
-    });
+    const { data: exam, error } = await supabase
+      .from("exam_attempts")
+      .insert({
+        question_ids: questions.map((q) => q.id),
+        answers,
+        score,
+        total: questions.length,
+        question_seconds: seconds,
+        total_seconds: totalSeconds,
+      })
+      .select("id")
+      .single();
     if (error) console.error(error);
+    // Cada resposta dada entra no histórico (as erradas vão para o Caderno de erros).
+    await recordAttempts(
+      questions.flatMap((q, i) =>
+        answers[i] === null || answers[i] === undefined
+          ? []
+          : [{ question_id: q.id, chosen_index: answers[i]!, source: "prova" as const, exam_attempt_id: exam?.id ?? null }],
+      ),
+    );
+    void queryClient.invalidateQueries({ queryKey: ["mcq-attempts"] });
+    void queryClient.invalidateQueries({ queryKey: ["topics-progress"] });
   }
+
+  const examTopicIds = [...new Set(questions.map((q) => q.topic_id))];
+  const multiTopic = examTopicIds.length > 1;
+  const topicTitle = (id: string) =>
+    cleanTitle(topics.data?.find((t) => t.id === id)?.title ?? "Tópico");
+
+  const byTopic = (() => {
+    const map: Record<string, { total: number; ok: number }> = {};
+    questions.forEach((q, i) => {
+      const e = (map[q.topic_id] ??= { total: 0, ok: 0 });
+      e.total++;
+      if (answers[i] === q.correct_index) e.ok++;
+    });
+    return Object.entries(map).map(([id, v]) => ({
+      subtopic: topicTitle(id),
+      pct: Math.round((v.ok / v.total) * 100),
+      label: `${v.ok}/${v.total}`,
+    }));
+  })();
+
+  const wrongCount = questions.filter(
+    (q, i) => answers[i] !== null && answers[i] !== undefined && answers[i] !== q.correct_index,
+  ).length;
 
   const bySubtopic = (() => {
     const map: Record<string, { total: number; ok: number }> = {};
     questions.forEach((q, i) => {
-      const key = q.subtopic?.trim() || "Sem sub-tópico";
+      const ramo = q.subtopic?.trim() || "Sem sub-tópico";
+      // Com vários tópicos na prova, o ramo vem com o nome do tópico para não misturar.
+      const key = multiTopic ? `${topicTitle(q.topic_id)} › ${ramo}` : ramo;
       const e = (map[key] ??= { total: 0, ok: 0 });
       e.total++;
       if (answers[i] === q.correct_index) e.ok++;
@@ -601,42 +643,35 @@ function ExamPage() {
             </Button>
           </section>
 
+          {wrongCount > 0 && (
+            <p className="-mt-4 text-sm text-muted-foreground">
+              {wrongCount === 1 ? "A questão que você errou foi" : `As ${wrongCount} questões que você errou foram`}{" "}
+              para o{" "}
+              <Link
+                to="/erros"
+                className="font-medium text-foreground underline decoration-border underline-offset-4 hover:decoration-foreground"
+              >
+                Caderno de erros
+              </Link>
+              . Cada uma sai de lá depois de 2 acertos seguidos.
+            </p>
+          )}
+
+          {multiTopic && (
+            <section aria-labelledby="prova-topicos-resultado">
+              <h2 id="prova-topicos-resultado" className="text-[1.75rem] leading-none">
+                Desempenho por tópico
+              </h2>
+              <PerformanceBars rows={byTopic} />
+            </section>
+          )}
+
           {bySubtopic.length > 0 && (
             <section aria-labelledby="prova-ramos">
               <h2 id="prova-ramos" className="text-[1.75rem] leading-none">
                 Desempenho por ramo
               </h2>
-              <ul className="mt-4 space-y-3">
-                {bySubtopic
-                  .slice()
-                  .sort((a, b) => a.pct - b.pct)
-                  .map((r) => (
-                    <li
-                      key={r.subtopic}
-                      className="grid grid-cols-[minmax(0,12rem)_1fr_auto] items-center gap-4 text-sm"
-                    >
-                      <span className="truncate" title={r.subtopic}>
-                        {r.subtopic}
-                      </span>
-                      <span aria-hidden className="h-2 overflow-hidden rounded-full bg-border">
-                        <span
-                          className={cn(
-                            "block h-full rounded-full",
-                            r.pct >= 70
-                              ? "bg-tint-1-fg"
-                              : r.pct >= 40
-                                ? "bg-tint-4-fg"
-                                : "bg-tint-3-fg",
-                          )}
-                          style={{ width: `${Math.max(r.pct, 2)}%` }}
-                        />
-                      </span>
-                      <span className="w-20 text-right tnum">
-                        {r.label} · {r.pct}%
-                      </span>
-                    </li>
-                  ))}
-              </ul>
+              <PerformanceBars rows={bySubtopic} />
               <p className="mt-3 text-xs text-muted-foreground">
                 Os ramos com menos acertos aparecem primeiro.
               </p>
@@ -780,5 +815,38 @@ function ExamPage() {
         </AlertDialogContent>
       </AlertDialog>
     </main>
+  );
+}
+
+/** Barras de acerto (tópico ou ramo), do pior para o melhor. A cor repete o número ao lado. */
+function PerformanceBars({ rows }: { rows: { subtopic: string; pct: number; label: string }[] }) {
+  return (
+    <ul className="mt-4 space-y-3">
+      {rows
+        .slice()
+        .sort((a, b) => a.pct - b.pct)
+        .map((r) => (
+          <li
+            key={r.subtopic}
+            className="grid grid-cols-[minmax(0,14rem)_1fr_auto] items-center gap-4 text-sm"
+          >
+            <span className="truncate" title={r.subtopic}>
+              {r.subtopic}
+            </span>
+            <span aria-hidden className="h-2 overflow-hidden rounded-full bg-border">
+              <span
+                className={cn(
+                  "block h-full rounded-full",
+                  r.pct >= 70 ? "bg-tint-1-fg" : r.pct >= 40 ? "bg-tint-4-fg" : "bg-tint-3-fg",
+                )}
+                style={{ width: `${Math.max(r.pct, 2)}%` }}
+              />
+            </span>
+            <span className="w-24 text-right tnum">
+              {r.label} · {r.pct}%
+            </span>
+          </li>
+        ))}
+    </ul>
   );
 }

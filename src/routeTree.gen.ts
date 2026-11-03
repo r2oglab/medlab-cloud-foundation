@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthenticatedErrosRouteImport } from './routes/_authenticated/erros'
 import { Route as AuthenticatedProvaRouteImport } from './routes/_authenticated/prova'
 import { Route as AuthenticatedTopicoIdRouteImport } from './routes/_authenticated/topico.$id'
 
@@ -29,6 +30,11 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedErrosRoute = AuthenticatedErrosRouteImport.update({
+  id: '/erros',
+  path: '/erros',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedProvaRoute = AuthenticatedProvaRouteImport.update({
   id: '/prova',
   path: '/prova',
@@ -43,11 +49,13 @@ const AuthenticatedTopicoIdRoute = AuthenticatedTopicoIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
+  '/erros': typeof AuthenticatedErrosRoute
   '/prova': typeof AuthenticatedProvaRoute
   '/topico/$id': typeof AuthenticatedTopicoIdRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
+  '/erros': typeof AuthenticatedErrosRoute
   '/prova': typeof AuthenticatedProvaRoute
   '/': typeof AuthenticatedIndexRoute
   '/topico/$id': typeof AuthenticatedTopicoIdRoute
@@ -56,19 +64,21 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/erros': typeof AuthenticatedErrosRoute
   '/_authenticated/prova': typeof AuthenticatedProvaRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/topico/$id': typeof AuthenticatedTopicoIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/prova' | '/topico/$id'
+  fullPaths: '/' | '/auth' | '/erros' | '/prova' | '/topico/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/auth' | '/prova' | '/' | '/topico/$id'
+  to: '/auth' | '/erros' | '/prova' | '/' | '/topico/$id'
   id:
     | '__root__'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/erros'
     | '/_authenticated/prova'
     | '/_authenticated/'
     | '/_authenticated/topico/$id'
@@ -102,6 +112,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/erros': {
+      id: '/_authenticated/erros'
+      path: '/erros'
+      fullPath: '/erros'
+      preLoaderRoute: typeof AuthenticatedErrosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/prova': {
       id: '/_authenticated/prova'
       path: '/prova'
@@ -120,12 +137,14 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedErrosRoute: typeof AuthenticatedErrosRoute
   AuthenticatedProvaRoute: typeof AuthenticatedProvaRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedTopicoIdRoute: typeof AuthenticatedTopicoIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedErrosRoute: AuthenticatedErrosRoute,
   AuthenticatedProvaRoute: AuthenticatedProvaRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedTopicoIdRoute: AuthenticatedTopicoIdRoute,
