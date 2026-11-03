@@ -45,7 +45,10 @@ Regras:
 - De 7 a 14 caixas. "label" com até 8 palavras, sem ponto final.
 - "tipo": "inicio" (só a primeira caixa), "passo", "decisao" (pergunta curta terminada em "?", com 2 ou 3 setas saindo, cada uma com "label" curto, como "Sim" e "Não" ou o critério) e "fim" (desfechos).
 - "detalhe": 1 ou 2 frases que explicam a caixa (o mecanismo, o critério ou o porquê), para o aluno clicar e ler.
+- Mostre os ramos que existem de verdade: mecanismos que acontecem em paralelo e desfechos diferentes ficam em caixas separadas, lado a lado. Não force uma fila única nem junte dois desfechos numa caixa só.
 - No máximo 3 caminhos lado a lado. As setas avançam de cima para baixo; não volte, salvo o ciclo vicioso descrito acima.
+- Letra maiúscula só no começo do texto, em siglas e em nomes próprios (escreva "Da agressão ao desfecho", não "Da Agressão ao Desfecho").
+- Em "detalhe", seja preciso sobre quem faz o quê (célula, mediador, órgão); não atribua uma função a quem não a exerce.
 - Só conhecimento consolidado e coerente com o resumo do tópico.
 - Texto puro, sem asteriscos e sem markdown.
 Responda SOMENTE com JSON: { "titulo": "string", "caixas": [{ "id": "c1", "tipo": "inicio", "label": "string", "detalhe": "string" }], "setas": [{ "de": "c1", "para": "c2", "label": "" }] }`,

@@ -4,7 +4,16 @@ import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { backfillSubtopics } from "@/lib/study-extra.functions";
-import { ArrowLeft, Ellipsis, FileText, FolderInput, Loader2, Pencil, Trash2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Ellipsis,
+  FileDown,
+  FileText,
+  FolderInput,
+  Loader2,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { ClinicalCaseRow, FlashcardRow, McqRow, Mindmap } from "@/lib/study-types";
 import { markdownToHtml } from "@/lib/markdown-to-html";
@@ -24,6 +33,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Flashcards } from "@/components/study/Flashcards";
 import { McqPractice } from "@/components/study/McqPractice";
 import { Esquema, type PracticeTarget } from "@/components/study/Esquema";
+import { ExportDialog } from "@/components/study/ExportDialog";
 import { Flowchart } from "@/components/study/Flowchart";
 import { Segmented } from "@/components/study/Segmented";
 import { ClinicalCase } from "@/components/study/ClinicalCase";
@@ -275,6 +285,7 @@ function TopicPage() {
   const [maskMode, setMaskMode] = useState(true);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [moving, setMoving] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const essays = useEssays(id);
   const folders = useFolders();
   const [renaming, setRenaming] = useState(false);
@@ -568,6 +579,9 @@ function TopicPage() {
               <DropdownMenuItem onSelect={() => setMoving(true)} className="gap-2">
                 <FolderInput className="size-4" aria-hidden /> Mover para pasta
               </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setExporting(true)} className="gap-2">
+                <FileDown className="size-4" aria-hidden /> Exportar PDF ou Word
+              </DropdownMenuItem>
               {hasSource && !sourcePending.data && (
                 <DropdownMenuItem onSelect={openOriginal} className="gap-2 sm:hidden">
                   <FileText className="size-4" aria-hidden /> Material original
@@ -604,6 +618,17 @@ function TopicPage() {
           <>Criado em {created}</>
         )}
       </p>
+
+      <ExportDialog
+        open={exporting}
+        onOpenChange={setExporting}
+        topicId={id}
+        title={displayTitle}
+        summaryHtml={d.summaryHtml}
+        flashcards={d.flashcards}
+        mcq={d.mcq}
+        review={d.review}
+      />
 
       <MoveTopicDialog
         topic={moving ? { id, title: displayTitle, folder_id: d.topic.folder_id } : null}
