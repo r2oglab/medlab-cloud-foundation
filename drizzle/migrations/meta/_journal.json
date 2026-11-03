@@ -50,6 +50,13 @@
       "when": 1793672973678,
       "tag": "0006_20260920000000_manual_flashcard_crud",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793672993573,
+      "tag": "0007_20260921000000_manual_topic_mcq_crud",
+      "breakpoints": true
     }
   ]
 }
