@@ -64,6 +64,13 @@
       "when": 1793673011254,
       "tag": "0008_20260922000000_editable_summary",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793673027313,
+      "tag": "0009_20261001000000_source_files_on_demand_summary",
+      "breakpoints": true
     }
   ]
 }
