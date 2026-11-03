@@ -40,6 +40,8 @@ import { cleanTitle } from "@/lib/topics-index";
 import { folderPath, useFolders } from "@/lib/folders";
 import { MoveTopicDialog } from "@/components/folders/FolderDialogs";
 import { EssayPractice } from "@/components/study/EssayPractice";
+import { SummaryTools } from "@/components/study/SummaryTools";
+import { MnemonicsPanel } from "@/components/study/MnemonicsPanel";
 import { useEssays } from "@/lib/essays";
 import { cn } from "@/lib/utils";
 import {
@@ -683,10 +685,21 @@ function TopicPage() {
                         }}
                         readActions={
                           hasContent ? (
-                            <RegenerateSummaryButton
-                              onConfirm={() => summaryGen.mutate()}
-                              generating={summaryGen.isPending}
-                            />
+                            <>
+                              <SummaryTools
+                                topicId={id}
+                                html={d.summaryHtml}
+                                onChanged={async () => {
+                                  // Recarrega o resumo salvo e remonta o editor com ele
+                                  await queryClient.invalidateQueries({ queryKey: ["topic", id] });
+                                  setSummaryVersion((v) => v + 1);
+                                }}
+                              />
+                              <RegenerateSummaryButton
+                                onConfirm={() => summaryGen.mutate()}
+                                generating={summaryGen.isPending}
+                              />
+                            </>
                           ) : null
                         }
                       />
@@ -743,9 +756,12 @@ function TopicPage() {
           <ClinicalCase cases={d.cases} topicId={id} maskMode={maskMode} />
         </TabsContent>
         <TabsContent value="revisao" className="mt-6 animate-fade-up">
-          <p className="mb-5 text-sm text-muted-foreground">
-            Perguntas para refletir, sem gabarito. Tente responder com suas palavras, em voz alta ou
-            no papel.
+          <MnemonicsPanel topicId={id} />
+          <h2 className="border-b-[1.5px] border-foreground pb-2 text-[1.75rem] leading-none">
+            Perguntas para refletir
+          </h2>
+          <p className="mb-5 mt-3 text-sm text-muted-foreground">
+            Sem gabarito. Tente responder com suas palavras, em voz alta ou no papel.
           </p>
           <RevisaoTab topicId={id} review={d.review} maskMode={maskMode} />
         </TabsContent>
