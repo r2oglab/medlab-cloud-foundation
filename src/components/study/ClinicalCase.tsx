@@ -13,6 +13,16 @@ import {
   generateClinicalCase,
 } from "@/lib/study-extra.functions";
 
+/**
+ * Cenário em formato de tutoria: põe em negrito o rótulo do começo de cada linha
+ * ("Identificação:", "Exame físico:"...). O negrito usa a marcação **...**, que o
+ * renderizador de grifos já entende e não conta nas posições, então grifos antigos não se mexem.
+ */
+function boldCaseLabels(text: string): string {
+  // Rótulo = só letras, espaços, parênteses e barras (sem números), para não pegar "Hb 9,8 (VR: ...".
+  return text.replace(/^([A-ZÁÉÍÓÚÂÊÔÃÕÇ][A-Za-zÀ-ÿ ()/–-]{2,40}):/gm, "**$1:**");
+}
+
 const MAX_CASES = 5;
 
 export function ClinicalCase({
@@ -125,7 +135,7 @@ function CaseView({
           as="p"
           className="mt-3 whitespace-pre-line text-[1.0625rem] leading-relaxed"
           blockIndex={0}
-          text={data.scenario}
+          text={boldCaseLabels(data.scenario)}
           ranges={rangesFor(0)}
           onSelect={onSelect}
           onRemove={onRemove}

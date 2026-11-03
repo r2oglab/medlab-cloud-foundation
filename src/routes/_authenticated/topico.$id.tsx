@@ -383,14 +383,14 @@ function TopicPage() {
   if (q.isLoading) {
     return (
       <main className="mx-auto w-full max-w-[960px] px-5 pt-8 sm:px-8 lg:pt-12" aria-busy="true">
-        <div className="h-4 w-40 animate-pulse rounded bg-black/[0.06]" />
-        <div className="mt-8 h-12 w-3/4 animate-pulse rounded bg-black/[0.06]" />
+        <div className="h-4 w-40 animate-pulse rounded bg-foreground/[0.06]" />
+        <div className="mt-8 h-12 w-3/4 animate-pulse rounded bg-foreground/[0.06]" />
         <div className="mt-10 h-px bg-border" />
         <div className="mt-8 space-y-3">
           {[92, 85, 96, 70].map((w, i) => (
             <div
               key={i}
-              className="h-4 animate-pulse rounded bg-black/[0.05]"
+              className="h-4 animate-pulse rounded bg-foreground/[0.05]"
               style={{ width: `${w}%` }}
             />
           ))}

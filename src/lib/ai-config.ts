@@ -29,7 +29,7 @@ Evolução: ... (opcional: o que aconteceu depois ou o que motivou a investigaç
 
 /** Questões objetivas com vinheta clínica. Vinheta e enunciado ficam separados por uma linha em branco. */
 export const MCQ_RULES = `QUESTÕES DE MÚLTIPLA ESCOLHA (estilo prova de Medicina e residência):
-- Pelo menos 7 em cada 10 questões começam com uma VINHETA CLÍNICA de 40 a 90 palavras (paciente, idade, queixa, achados de exame e exames relevantes com unidades), seguida de UMA LINHA EM BRANCO ("\\n\\n") e do enunciado curto com a pergunta. As demais podem ser conceituais diretas (mecanismo, histologia, classificação), sem vinheta e sem linha em branco.
+- Pelo menos 7 em cada 10 questões começam com uma VINHETA CLÍNICA de 40 a 90 palavras (paciente, idade, queixa, achados de exame e exames relevantes com unidades), seguida de UMA LINHA EM BRANCO ("\\n\\n") e do enunciado: UMA frase curta (até 25 palavras) que é só a pergunta. Todos os dados do paciente, inclusive medicações em uso e exames, ficam na vinheta, nunca depois da linha em branco. As demais podem ser conceituais diretas (mecanismo, histologia, classificação), sem vinheta e sem linha em branco.
 - Exatamente 4 alternativas plausíveis e do mesmo tipo (todas diagnósticos, ou todas mecanismos etc.). Nada de "todas as anteriores", "nenhuma das anteriores" ou pegadinha de português.
 - "explanation" diz por que a correta está certa e por que cada distratora está errada, em 2 a 5 frases.
 - Distribua as respostas corretas entre as posições 0, 1, 2 e 3.`;
