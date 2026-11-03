@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { BookX, ChevronRight, Ellipsis, FolderPlus, GraduationCap, LogOut, NotebookPen, Plus, Search } from "lucide-react";
+import { BookX, ChartNoAxesColumn, ChevronRight, Ellipsis, FolderPlus, GraduationCap, LogOut, NotebookPen, Plus, Search } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { BrandMark, Wordmark } from "@/components/BrandMark";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
@@ -409,6 +409,14 @@ function SidebarContent({ pathname, onNewTopic }: { pathname: string; onNewTopic
               <span className="sr-only"> para revisar</span>
             </span>
           )}
+        </Link>
+        <Link
+          to="/estatisticas"
+          className={navItem(pathname.startsWith("/estatisticas"))}
+          aria-current={pathname.startsWith("/estatisticas") ? "page" : undefined}
+        >
+          <ChartNoAxesColumn className="size-[18px]" aria-hidden />
+          Desempenho
         </Link>
       </nav>
 

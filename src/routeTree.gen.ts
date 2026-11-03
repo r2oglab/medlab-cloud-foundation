@@ -13,6 +13,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedErrosRouteImport } from './routes/_authenticated/erros'
+import { Route as AuthenticatedEstatisticasRouteImport } from './routes/_authenticated/estatisticas'
 import { Route as AuthenticatedProvaRouteImport } from './routes/_authenticated/prova'
 import { Route as AuthenticatedTopicoIdRouteImport } from './routes/_authenticated/topico.$id'
 
@@ -35,6 +36,12 @@ const AuthenticatedErrosRoute = AuthenticatedErrosRouteImport.update({
   path: '/erros',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedEstatisticasRoute =
+  AuthenticatedEstatisticasRouteImport.update({
+    id: '/estatisticas',
+    path: '/estatisticas',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedProvaRoute = AuthenticatedProvaRouteImport.update({
   id: '/prova',
   path: '/prova',
@@ -50,12 +57,14 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
   '/erros': typeof AuthenticatedErrosRoute
+  '/estatisticas': typeof AuthenticatedEstatisticasRoute
   '/prova': typeof AuthenticatedProvaRoute
   '/topico/$id': typeof AuthenticatedTopicoIdRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/erros': typeof AuthenticatedErrosRoute
+  '/estatisticas': typeof AuthenticatedEstatisticasRoute
   '/prova': typeof AuthenticatedProvaRoute
   '/': typeof AuthenticatedIndexRoute
   '/topico/$id': typeof AuthenticatedTopicoIdRoute
@@ -65,20 +74,23 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/erros': typeof AuthenticatedErrosRoute
+  '/_authenticated/estatisticas': typeof AuthenticatedEstatisticasRoute
   '/_authenticated/prova': typeof AuthenticatedProvaRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/topico/$id': typeof AuthenticatedTopicoIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/erros' | '/prova' | '/topico/$id'
+  fullPaths:
+    '/' | '/auth' | '/erros' | '/estatisticas' | '/prova' | '/topico/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/auth' | '/erros' | '/prova' | '/' | '/topico/$id'
+  to: '/auth' | '/erros' | '/estatisticas' | '/prova' | '/' | '/topico/$id'
   id:
     | '__root__'
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/erros'
+    | '/_authenticated/estatisticas'
     | '/_authenticated/prova'
     | '/_authenticated/'
     | '/_authenticated/topico/$id'
@@ -119,6 +131,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedErrosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/estatisticas': {
+      id: '/_authenticated/estatisticas'
+      path: '/estatisticas'
+      fullPath: '/estatisticas'
+      preLoaderRoute: typeof AuthenticatedEstatisticasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/prova': {
       id: '/_authenticated/prova'
       path: '/prova'
@@ -138,6 +157,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedErrosRoute: typeof AuthenticatedErrosRoute
+  AuthenticatedEstatisticasRoute: typeof AuthenticatedEstatisticasRoute
   AuthenticatedProvaRoute: typeof AuthenticatedProvaRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedTopicoIdRoute: typeof AuthenticatedTopicoIdRoute
@@ -145,6 +165,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedErrosRoute: AuthenticatedErrosRoute,
+  AuthenticatedEstatisticasRoute: AuthenticatedEstatisticasRoute,
   AuthenticatedProvaRoute: AuthenticatedProvaRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedTopicoIdRoute: AuthenticatedTopicoIdRoute,
