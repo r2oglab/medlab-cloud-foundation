@@ -3,6 +3,7 @@
 -- Pastas (9) · Registro de respostas / Caderno de erros / Relatório (13, 26)
 -- Discursivas (23) · Estatísticas (25) · Fluxograma e mnemônicos (16, 17)
 -- Notas na margem (30) · Várias fontes (20, 21) · Chat do tópico (19)
+-- + correção de segurança em exam_attempts (alerta crítico do Lovable)
 -- Padrão do projeto: dado do usuário = RLS por dono; conteúdo protegido = função
 -- SECURITY DEFINER que confere o dono do tópico.
 -- ============================================================
@@ -13,6 +14,13 @@
 --    A política "owner select exam_attempts" já limita a leitura ao dono.
 -- ------------------------------------------------------------
 GRANT SELECT ON public.exam_attempts TO authenticated;
+
+-- Falha de segurança herdada do FonoLab (alerta "Anyone can change any record in exam_attempts"):
+-- a migração inicial deixou UPDATE liberado para qualquer pessoa (USING true / WITH CHECK true).
+-- O app nunca altera uma prova depois de gravada, então a regra e a permissão saem.
+-- IF EXISTS: funciona mesmo se o "Try to fix" do Lovable já tiver removido a regra.
+DROP POLICY IF EXISTS "public update exam_attempts" ON public.exam_attempts;
+REVOKE UPDATE, DELETE ON public.exam_attempts FROM anon, authenticated;
 
 -- ------------------------------------------------------------
 -- 1. Pastas: Módulo › Problema (2 níveis)
