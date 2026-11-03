@@ -125,6 +125,7 @@ export type Database = {
       }
       highlights: {
         Row: {
+          block_index: number
           case_id: string | null
           content_type: string
           created_at: string
@@ -134,6 +135,7 @@ export type Database = {
           topic_id: string
         }
         Insert: {
+          block_index?: number
           case_id?: string | null
           content_type: string
           created_at?: string
@@ -143,6 +145,7 @@ export type Database = {
           topic_id: string
         }
         Update: {
+          block_index?: number
           case_id?: string | null
           content_type?: string
           created_at?: string
