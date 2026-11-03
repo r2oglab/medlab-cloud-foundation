@@ -257,11 +257,15 @@ function ExamPage() {
       e.total++;
       if (answers[i] === q.correct_index) e.ok++;
     });
-    return Object.entries(map).map(([subtopic, v]) => ({
-      subtopic,
-      pct: Math.round((v.ok / v.total) * 100),
-      label: `${v.ok}/${v.total}`,
-    }));
+    return Object.entries(map).map(([key, v]) => {
+      const [group, ramo] = multiTopic ? key.split(" › ") : [undefined, key];
+      return {
+        subtopic: ramo ?? key,
+        group,
+        pct: Math.round((v.ok / v.total) * 100),
+        label: `${v.ok}/${v.total}`,
+      };
+    });
   })();
 
   const score = questions.reduce((acc, q, i) => acc + (answers[i] === q.correct_index ? 1 : 0), 0);
@@ -671,7 +675,18 @@ function ExamPage() {
               <h2 id="prova-ramos" className="text-[1.75rem] leading-none">
                 Desempenho por ramo
               </h2>
-              <PerformanceBars rows={bySubtopic} />
+              {multiTopic ? (
+                [...new Set(bySubtopic.map((r) => r.group ?? ""))].map((g) => (
+                  <div key={g} className="mt-5">
+                    <p className="font-sans text-[0.6875rem] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                      {g}
+                    </p>
+                    <PerformanceBars rows={bySubtopic.filter((r) => (r.group ?? "") === g)} />
+                  </div>
+                ))
+              ) : (
+                <PerformanceBars rows={bySubtopic} />
+              )}
               <p className="mt-3 text-xs text-muted-foreground">
                 Os ramos com menos acertos aparecem primeiro.
               </p>
@@ -738,12 +753,22 @@ function ExamPage() {
                           <X className="size-3.5" strokeWidth={3} />
                         )}
                       </span>
-                      <p className="flex-1 font-medium leading-relaxed">
-                        <span className="sr-only">
-                          {ok ? "Certa. " : blank ? "Não respondida. " : "Errada. "}
-                        </span>
-                        {i + 1}. {splitVignette(q.question).stem}
-                      </p>
+                      <div className="flex-1">
+                        <p className="font-medium leading-relaxed">
+                          <span className="sr-only">
+                            {ok ? "Certa. " : blank ? "Não respondida. " : "Errada. "}
+                          </span>
+                          {i + 1}. {splitVignette(q.question).stem}
+                        </p>
+                        {splitVignette(q.question).vignette && (
+                          <p className="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
+                            <span className="mr-1.5 font-sans text-[0.6875rem] font-medium uppercase tracking-[0.12em]">
+                              Caso
+                            </span>
+                            {splitVignette(q.question).vignette}
+                          </p>
+                        )}
+                      </div>
                       <span
                         className={cn(
                           "shrink-0 font-mono text-xs text-muted-foreground tnum",
@@ -821,7 +846,7 @@ function ExamPage() {
 /** Barras de acerto (tópico ou ramo), do pior para o melhor. A cor repete o número ao lado. */
 function PerformanceBars({ rows }: { rows: { subtopic: string; pct: number; label: string }[] }) {
   return (
-    <ul className="mt-4 space-y-3">
+    <ul className="mt-3 space-y-3">
       {rows
         .slice()
         .sort((a, b) => a.pct - b.pct)
