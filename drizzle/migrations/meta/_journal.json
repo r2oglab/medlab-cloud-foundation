@@ -43,6 +43,13 @@
       "when": 1793672958659,
       "tag": "0005_20260919010000_highlight_block_index",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793672973678,
+      "tag": "0006_20260920000000_manual_flashcard_crud",
+      "breakpoints": true
     }
   ]
 }
