@@ -17,6 +17,7 @@ import type { TopicListItem } from "@/lib/topics-index";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { cleanTitle, progressPct, useTopicsList, useTopicsProgress } from "@/lib/topics-index";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 /**
  * Casca do app logado (proposta Caderno):
@@ -117,7 +118,11 @@ function SidebarContent({ pathname, onNewTopic }: { pathname: string; onNewTopic
   const topics = useTopicsList();
   const progress = useTopicsProgress();
   const folders = useFolders();
-  const { create, rename } = useFolderActions();
+  const { create, rename, moveTopic } = useFolderActions();
+  // Arrastar tópico para uma pasta (no computador). No celular/teclado: "⋯ → Mover para pasta".
+  const [dragging, setDragging] = useState(false);
+  const [dragOver, setDragOver] = useState<string | null>(null);
+  const expandTimer = useRef<number | null>(null);
   const [filter, setFilter] = useState("");
   const [nameDialog, setNameDialog] = useState<
     { mode: "modulo" } | { mode: "problema"; parent: Folder } | { mode: "renomear"; folder: Folder } | null
@@ -153,6 +158,67 @@ function SidebarContent({ pathname, onNewTopic }: { pathname: string; onNewTopic
   const activeFolderId = topics.data?.find((t) => t.id === activeTopicId)?.folder_id ?? null;
   const activeParentId = folders.data?.find((f) => f.id === activeFolderId)?.parent_id ?? null;
   const isOpen = (id: string) => !collapsed.has(id);
+
+  // Enquanto arrasta, soltar fora de uma pasta não abre o link do tópico numa aba nova.
+  useEffect(() => {
+    if (!dragging) return;
+    const block = (e: DragEvent) => {
+      if (e.dataTransfer?.types.includes(TOPIC_MIME)) e.preventDefault();
+    };
+    window.addEventListener("dragover", block);
+    window.addEventListener("drop", block);
+    return () => {
+      window.removeEventListener("dragover", block);
+      window.removeEventListener("drop", block);
+    };
+  }, [dragging]);
+
+  function stopDrag() {
+    setDragging(false);
+    setDragOver(null);
+    if (expandTimer.current) window.clearTimeout(expandTimer.current);
+    expandTimer.current = null;
+  }
+
+  /** Torna uma área (pasta ou "Sem pasta") um destino para soltar tópicos. */
+  function dropTarget(key: string, folderId: string | null, label: string) {
+    return {
+      onDragOver: (e: React.DragEvent) => {
+        if (!e.dataTransfer.types.includes(TOPIC_MIME)) return;
+        e.preventDefault();
+        e.stopPropagation(); // a pasta mais interna (problema) ganha da de fora (módulo)
+        e.dataTransfer.dropEffect = "move";
+        if (dragOver !== key) {
+          setDragOver(key);
+          if (expandTimer.current) window.clearTimeout(expandTimer.current);
+          expandTimer.current = null;
+          // Pasta fechada abre sozinha se o tópico ficar parado em cima dela.
+          if (folderId && collapsed.has(folderId)) {
+            expandTimer.current = window.setTimeout(() => collapsed.toggle(folderId), 650);
+          }
+        }
+      },
+      onDragLeave: (e: React.DragEvent) => {
+        if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+        setDragOver((k) => (k === key ? null : k));
+      },
+      onDrop: async (e: React.DragEvent) => {
+        if (!e.dataTransfer.types.includes(TOPIC_MIME)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const topicId = e.dataTransfer.getData(TOPIC_MIME);
+        stopDrag();
+        const topic = topics.data?.find((t) => t.id === topicId);
+        if (!topic || topic.folder_id === folderId) return;
+        try {
+          await moveTopic(topicId, folderId);
+          toast.success(folderId ? `Movido para “${label}”.` : "Movido para “Sem pasta”.");
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : "Não deu para mover o tópico.");
+        }
+      },
+    };
+  }
   // Ao abrir um tópico, a pasta dele (e o módulo acima) se abrem para ele aparecer no índice.
   const { expand } = collapsed;
   useEffect(() => {
@@ -170,8 +236,17 @@ function SidebarContent({ pathname, onNewTopic }: { pathname: string; onNewTopic
           params={{ id: t.id }}
           title={label}
           aria-current={active ? "page" : undefined}
+          draggable={hasFolders}
+          onDragStart={(e) => {
+            if (!hasFolders) return;
+            e.dataTransfer.setData(TOPIC_MIME, t.id);
+            e.dataTransfer.effectAllowed = "move";
+            setDragging(true);
+          }}
+          onDragEnd={stopDrag}
           className={cn(
             "flex min-h-9 items-center justify-between gap-3 rounded-md px-2.5 py-1.5 text-sm transition-colors",
+            dragging && "cursor-grabbing",
             active
               ? "bg-sidebar-accent text-foreground shadow-[0_0_0_1px_var(--color-sidebar-border)]"
               : "text-foreground/80 hover:bg-sidebar-accent/70 hover:text-foreground",
@@ -187,7 +262,13 @@ function SidebarContent({ pathname, onNewTopic }: { pathname: string; onNewTopic
   function folderRow(folder: Folder, count: number, problems: number, isModule: boolean) {
     const open = isOpen(folder.id);
     return (
-      <div className="group/pasta flex items-center rounded-md transition-colors hover:bg-sidebar-accent/70">
+      <div
+        {...dropTarget(folder.id, folder.id, folder.name)}
+        className={cn(
+          "group/pasta flex items-center rounded-md transition-[background-color,box-shadow] hover:bg-sidebar-accent/70",
+          dragOver === folder.id && "bg-sidebar-accent shadow-[0_0_0_1.5px_var(--color-ring)]",
+        )}
+      >
         <button
           type="button"
           aria-expanded={open}
@@ -377,12 +458,18 @@ function SidebarContent({ pathname, onNewTopic }: { pathname: string; onNewTopic
                 <div key={m.folder.id}>
                   {folderRow(m.folder, m.count, m.problems.length, true)}
                   {isOpen(m.folder.id) && (
-                    <div className="ml-[0.8125rem] space-y-0.5 border-l border-sidebar-border pl-1.5">
+                    <div
+                      {...dropTarget(m.folder.id, m.folder.id, m.folder.name)}
+                      className="ml-[0.8125rem] space-y-0.5 border-l border-sidebar-border pl-1.5"
+                    >
                       {m.problems.map((p) => (
                         <div key={p.folder.id}>
                           {folderRow(p.folder, p.topics.length, 0, false)}
                           {isOpen(p.folder.id) && (
-                            <ul className="ml-[0.8125rem] space-y-0.5 border-l border-sidebar-border pl-1.5">
+                            <ul
+                              {...dropTarget(p.folder.id, p.folder.id, p.folder.name)}
+                              className="ml-[0.8125rem] space-y-0.5 border-l border-sidebar-border pl-1.5"
+                            >
                               {p.topics.length ? (
                                 p.topics.map((t) => renderTopic(t))
                               ) : (
@@ -402,12 +489,24 @@ function SidebarContent({ pathname, onNewTopic }: { pathname: string; onNewTopic
                   )}
                 </div>
               ))}
-              {!!tree.loose.length && (
-                <div className="pt-2">
+              {(!!tree.loose.length || dragging) && (
+                <div
+                  {...dropTarget("sem-pasta", null, "Sem pasta")}
+                  className={cn(
+                    "mt-2 rounded-md pt-2 transition-[background-color,box-shadow]",
+                    dragOver === "sem-pasta" && "bg-sidebar-accent shadow-[0_0_0_1.5px_var(--color-ring)]",
+                  )}
+                >
                   <p className="px-2.5 pb-1 font-sans text-[0.6875rem] font-medium uppercase tracking-[0.12em] text-muted-foreground">
                     Sem pasta
                   </p>
-                  <ul className="space-y-0.5">{tree.loose.map((t) => renderTopic(t))}</ul>
+                  {tree.loose.length ? (
+                    <ul className="space-y-0.5">{tree.loose.map((t) => renderTopic(t))}</ul>
+                  ) : (
+                    <p className="mx-2.5 mb-2 rounded-md border border-dashed border-sidebar-border px-2.5 py-2 text-xs text-muted-foreground">
+                      Solte aqui para tirar da pasta
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -475,6 +574,7 @@ function SidebarContent({ pathname, onNewTopic }: { pathname: string; onNewTopic
 }
 
 const COLLAPSED_KEY = "medlab:pastas-recolhidas";
+const TOPIC_MIME = "application/x-medlab-topic";
 
 /** Pastas recolhidas ficam lembradas neste navegador (só conforto visual; nada vai para o banco). */
 function useCollapsedFolders() {
