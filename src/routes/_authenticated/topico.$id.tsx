@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { backfillSubtopics } from "@/lib/study-extra.functions";
-import { ArrowLeft, Ellipsis, FileText, Loader2, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, Ellipsis, FileText, FolderInput, Loader2, Pencil, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { ClinicalCaseRow, FlashcardRow, McqRow, Mindmap } from "@/lib/study-types";
 import { markdownToHtml } from "@/lib/markdown-to-html";
@@ -37,6 +37,8 @@ import {
 import { ResumoToc } from "@/components/study/ResumoToc";
 import { delatex } from "@/lib/delatex";
 import { cleanTitle } from "@/lib/topics-index";
+import { folderPath, useFolders } from "@/lib/folders";
+import { MoveTopicDialog } from "@/components/folders/FolderDialogs";
 import { cn } from "@/lib/utils";
 import {
   AlertDialog,
@@ -97,7 +99,7 @@ async function loadTopic(id: string) {
   const [topic, materials, flashcards, mcq, cases] = await Promise.all([
     supabase
       .from("topics")
-      .select("id, title, created_at, source_hash, source_kind, source_name")
+      .select("id, title, created_at, source_hash, source_kind, source_name, folder_id")
       .eq("id", id)
       .single(),
     supabase.from("materials").select("type, content").eq("topic_id", id),
@@ -265,6 +267,8 @@ function TopicPage() {
   const q = useQuery({ queryKey: ["topic", id], queryFn: () => loadTopic(id) });
   const [maskMode, setMaskMode] = useState(true);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [moving, setMoving] = useState(false);
+  const folders = useFolders();
   const [renaming, setRenaming] = useState(false);
   // "Renomear" no menu: ao fechar, o foco vai para o campo do título (e não volta ao botão ⋯)
   const focusTitleAfterMenu = useRef(false);
@@ -456,6 +460,16 @@ function TopicPage() {
             <ArrowLeft className="size-4" aria-hidden /> Tópicos
           </Link>
           <span aria-hidden>/</span>
+          {folderPath(folders.data, d.topic.folder_id) && (
+            <>
+              <span className="hidden max-w-[16rem] truncate sm:inline">
+                {folderPath(folders.data, d.topic.folder_id)}
+              </span>
+              <span aria-hidden className="hidden sm:inline">
+                /
+              </span>
+            </>
+          )}
           <span className="truncate text-foreground/80" aria-current="page">
             {displayTitle}
           </span>
@@ -534,6 +548,9 @@ function TopicPage() {
               >
                 <Pencil className="size-4" aria-hidden /> Renomear
               </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setMoving(true)} className="gap-2">
+                <FolderInput className="size-4" aria-hidden /> Mover para pasta
+              </DropdownMenuItem>
               {hasSource && !sourcePending.data && (
                 <DropdownMenuItem onSelect={openOriginal} className="gap-2 sm:hidden">
                   <FileText className="size-4" aria-hidden /> Material original
@@ -570,6 +587,14 @@ function TopicPage() {
           <>Criado em {created}</>
         )}
       </p>
+
+      <MoveTopicDialog
+        topic={moving ? { id, title: displayTitle, folder_id: d.topic.folder_id } : null}
+        onOpenChange={(o) => {
+          setMoving(o);
+          if (!o) void queryClient.invalidateQueries({ queryKey: ["topic", id] });
+        }}
+      />
 
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent>

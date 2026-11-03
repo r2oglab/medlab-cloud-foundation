@@ -23,6 +23,7 @@ import { delatex } from "@/lib/delatex";
 import { splitVignette } from "@/lib/vignette";
 import { QuestionStem } from "@/components/study/QuestionStem";
 import { cleanTitle, useTopicsList } from "@/lib/topics-index";
+import { useFolders } from "@/lib/folders";
 
 export const Route = createFileRoute("/_authenticated/prova")({
   head: () => ({
@@ -257,6 +258,16 @@ function ExamPage() {
   }, [stage, current, questions]);
 
   const allIds = (topics.data ?? []).map((t) => t.id);
+  const folders = useFolders();
+  // Atalho por pasta: um clique marca (ou desmarca) todos os tópicos de um módulo e dos problemas dele.
+  const moduleGroups = (folders.data ?? [])
+    .filter((f) => !f.parent_id)
+    .map((m) => {
+      const inside = new Set([m.id, ...(folders.data ?? []).filter((f) => f.parent_id === m.id).map((f) => f.id)]);
+      const ids = (topics.data ?? []).filter((t) => t.folder_id && inside.has(t.folder_id)).map((t) => t.id);
+      return { id: m.id, name: m.name, ids, all: ids.length > 0 && ids.every((id) => selected.includes(id)) };
+    })
+    .filter((g) => g.ids.length > 0);
   const allSelected = allIds.length > 0 && allIds.every((id) => selected.includes(id));
 
   function leaveExam() {
@@ -322,6 +333,32 @@ function ExamPage() {
                 Você ainda não gerou nenhum tópico.
               </p>
             ) : (
+              <>
+              {moduleGroups.length > 0 && (
+                <div role="group" aria-label="Selecionar por pasta" className="mt-4 flex flex-wrap items-center gap-1.5">
+                  <span className="mr-1 text-sm text-muted-foreground">Por pasta:</span>
+                  {moduleGroups.map((g) => (
+                    <button
+                      key={g.id}
+                      type="button"
+                      aria-pressed={g.all}
+                      onClick={() =>
+                        setSelected((s) =>
+                          g.all ? s.filter((id) => !g.ids.includes(id)) : [...new Set([...s, ...g.ids])],
+                        )
+                      }
+                      className={cn(
+                        "h-8 rounded-md border px-3 text-[0.8125rem] transition-colors",
+                        g.all
+                          ? "border-foreground bg-foreground text-background"
+                          : "border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground",
+                      )}
+                    >
+                      {g.name} <span className="tnum opacity-70">({g.ids.length})</span>
+                    </button>
+                  ))}
+                </div>
+              )}
               <ul className="grid sm:grid-cols-2 sm:gap-x-8">
                 {topics.data.map((t) => {
                   const checked = selected.includes(t.id);
@@ -347,6 +384,7 @@ function ExamPage() {
                   );
                 })}
               </ul>
+              </>
             )}
             <p className="mt-3 text-xs text-muted-foreground tnum">
               {selected.length} {selected.length === 1 ? "tópico escolhido" : "tópicos escolhidos"}
