@@ -5,6 +5,9 @@ ALTER TABLE public.topic_notes
   ADD COLUMN IF NOT EXISTS anchor_text text
   CHECK (anchor_text IS NULL OR char_length(anchor_text) <= 300);
 
+-- Avisa a API do banco que a tabela mudou (senão ela pode demorar para enxergar a coluna)
+NOTIFY pgrst, 'reload schema';
+
 -- Conferência: deve listar a coluna anchor_text (tipo text)
 SELECT column_name, data_type
 FROM information_schema.columns

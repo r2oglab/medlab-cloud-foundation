@@ -61,17 +61,26 @@ export function resolveNotes(notes: NoteRow[], blockTexts: string[]): ResolvedNo
   return { byBlock, orphans };
 }
 
+/** Erro de coluna "anchor_text" inexistente: o SQL da Etapa 9 ainda não rodou no banco. */
+const missingAnchor = (e: { code?: string; message?: string } | null) =>
+  !!e && (e.code === "PGRST204" || e.code === "42703") && /anchor_text/.test(e.message ?? "");
+
+/** Mensagem com o motivo real, para dar para entender o que falhou. */
+const failure = (what: string, e: { message?: string } | null) =>
+  new Error(`Não deu para ${what}${e?.message ? ` (${e.message})` : ""}.`);
+
 export function useNotes(topicId: string) {
   return useQuery({
     queryKey: ["notes", topicId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("topic_notes")
-        .select("id, topic_id, block_index, anchor_text, content, updated_at")
-        .eq("topic_id", topicId)
-        .order("created_at");
-      if (error) throw error;
-      return (data ?? []) as NoteRow[];
+      const base = () => supabase.from("topic_notes").select("*").eq("topic_id", topicId);
+      const { data, error } = await base().order("created_at");
+      if (error) throw failure("carregar as notas", error);
+      // Sem a coluna nova, as notas ficam presas só pelo índice do bloco
+      return ((data ?? []) as Partial<NoteRow>[]).map((n) => ({
+        ...n,
+        anchor_text: n.anchor_text ?? null,
+      })) as NoteRow[];
     },
   });
 }
@@ -82,13 +91,20 @@ export function useNoteActions(topicId: string) {
 
   const create = useMutation({
     mutationFn: async (v: { blockIndex: number; blockText: string; content: string }) => {
-      const { error } = await supabase.from("topic_notes").insert({
+      const row = {
         topic_id: topicId,
         block_index: v.blockIndex,
-        anchor_text: anchorOf(v.blockText) || null,
         content: v.content.trim().slice(0, 5000),
-      });
-      if (error) throw new Error("Não deu para salvar a nota.");
+      };
+      let { error } = await supabase
+        .from("topic_notes")
+        .insert({ ...row, anchor_text: anchorOf(v.blockText) || null });
+      if (missingAnchor(error)) {
+        // Banco ainda sem a coluna nova: salva assim mesmo, presa só pelo índice
+        console.warn("topic_notes sem anchor_text: rode docs/sql/etapa-9-notas.sql");
+        ({ error } = await supabase.from("topic_notes").insert(row));
+      }
+      if (error) throw failure("salvar a nota", error);
     },
     onSuccess: refresh,
   });
@@ -99,7 +115,7 @@ export function useNoteActions(topicId: string) {
         .from("topic_notes")
         .update({ content: v.content.trim().slice(0, 5000), updated_at: new Date().toISOString() })
         .eq("id", v.id);
-      if (error) throw new Error("Não deu para salvar a nota.");
+      if (error) throw failure("salvar a nota", error);
     },
     onSuccess: refresh,
   });
@@ -107,7 +123,7 @@ export function useNoteActions(topicId: string) {
   const remove = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("topic_notes").delete().eq("id", id);
-      if (error) throw new Error("Não deu para apagar a nota.");
+      if (error) throw failure("apagar a nota", error);
     },
     onSuccess: refresh,
   });
