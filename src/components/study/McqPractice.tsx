@@ -304,8 +304,8 @@ export function McqPractice({
                         aria-hidden
                         className={cn(
                           "flex size-8 shrink-0 items-center justify-center rounded-full border text-[0.8125rem] font-semibold",
-                          state === "correct" && "border-transparent bg-tint-1-fg text-white",
-                          state === "wrong" && "border-transparent bg-tint-3-fg text-white",
+                          state === "correct" && "border-transparent bg-tint-1-fg text-background",
+                          state === "wrong" && "border-transparent bg-tint-3-fg text-background",
                           (state === "idle" || state === "dim") &&
                             "border-border text-muted-foreground",
                         )}

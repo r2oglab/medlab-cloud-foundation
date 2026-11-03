@@ -314,7 +314,7 @@ function ExamPage() {
             {topics.isLoading ? (
               <div className="mt-4 space-y-3" aria-hidden>
                 {[70, 55, 80].map((w, i) => (
-                  <div key={i} className="h-5 rounded bg-black/[0.06]" style={{ width: `${w}%` }} />
+                  <div key={i} className="h-5 rounded bg-foreground/[0.06]" style={{ width: `${w}%` }} />
                 ))}
               </div>
             ) : !topics.data?.length ? (
@@ -650,10 +650,10 @@ function ExamPage() {
                         className={cn(
                           "mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full",
                           ok
-                            ? "bg-tint-1-fg text-white"
+                            ? "bg-tint-1-fg text-background"
                             : blank
-                              ? "bg-muted-foreground text-white"
-                              : "bg-tint-3-fg text-white",
+                              ? "bg-muted-foreground text-background"
+                              : "bg-tint-3-fg text-background",
                         )}
                         aria-hidden
                       >

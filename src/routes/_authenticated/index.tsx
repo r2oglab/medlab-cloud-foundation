@@ -352,7 +352,7 @@ function Index() {
                   autoComplete="off"
                   disabled={loading}
                   maxLength={120}
-                  className="h-14 min-w-0 flex-1 bg-transparent text-lg outline-none placeholder:text-[#77716a] disabled:opacity-60 sm:text-2xl"
+                  className="h-14 min-w-0 flex-1 bg-transparent text-lg outline-none placeholder:text-muted-foreground disabled:opacity-60 sm:text-2xl"
                 />
               </>
             )}
@@ -508,7 +508,7 @@ function Index() {
           <ul aria-label="Carregando tópicos" className="divide-y divide-border">
             {[64, 48, 72].map((w, i) => (
               <li key={i} className="py-5">
-                <div className="h-5 rounded bg-black/[0.06]" style={{ width: `${w}%` }} />
+                <div className="h-5 rounded bg-foreground/[0.06]" style={{ width: `${w}%` }} />
               </li>
             ))}
           </ul>

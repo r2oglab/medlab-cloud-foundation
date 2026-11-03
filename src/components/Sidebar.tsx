@@ -3,6 +3,7 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { GraduationCap, LogOut, NotebookPen, Plus, Search } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { BrandMark, Wordmark } from "@/components/BrandMark";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { cleanTitle, progressPct, useTopicsList, useTopicsProgress } from "@/lib/topics-index";
 import { cn } from "@/lib/utils";
@@ -231,7 +232,7 @@ function SidebarContent({ pathname, onNewTopic }: { pathname: string; onNewTopic
             <ul className="space-y-1" aria-hidden>
               {[70, 85, 60, 78].map((w, i) => (
                 <li key={i} className="h-8 rounded-md px-2.5 py-2">
-                  <div className="h-3.5 rounded bg-black/[0.06]" style={{ width: `${w}%` }} />
+                  <div className="h-3.5 rounded bg-foreground/[0.06]" style={{ width: `${w}%` }} />
                 </li>
               ))}
             </ul>
@@ -268,6 +269,8 @@ function SidebarContent({ pathname, onNewTopic }: { pathname: string; onNewTopic
           )}
         </div>
       </section>
+
+      <ThemeSwitcher className="border-t border-sidebar-border pt-3" />
 
       <div className="flex items-center gap-2.5 border-t border-sidebar-border pt-3">
         <span
