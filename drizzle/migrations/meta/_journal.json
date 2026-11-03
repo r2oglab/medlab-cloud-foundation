@@ -71,6 +71,13 @@
       "when": 1793673027313,
       "tag": "0009_20261001000000_source_files_on_demand_summary",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793673037435,
+      "tag": "0010_20261002000000_source_claims",
+      "breakpoints": true
     }
   ]
 }
