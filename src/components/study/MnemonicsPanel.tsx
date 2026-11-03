@@ -6,10 +6,38 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { aiErrorMessage } from "@/lib/ai-busy";
-import { generateMnemonics, type Mnemonic } from "@/lib/summary-tools.functions";
+import { cn } from "@/lib/utils";
+import { displayInitial, phraseParts, type Mnemonic } from "@/lib/mnemonics";
+import { generateMnemonics } from "@/lib/summary-tools.functions";
 
 const eyebrow =
   "font-sans text-[0.6875rem] font-medium uppercase tracking-[0.12em] text-muted-foreground";
+
+/** A frase com a inicial de cada palavra-chave sublinhada; a sigla, inteira. */
+function MnemonicText({ m }: { m: Mnemonic }) {
+  if (m.tipo === "frase" && m.chaves?.length) {
+    return (
+      <p className="mt-1.5 font-serif text-[1.4rem] leading-snug">
+        <span className="grifo">
+          {phraseParts(m.mnemonico, m.chaves).map((p, i) =>
+            p.key ? (
+              <span key={i} className="underline decoration-2 underline-offset-[3px]">
+                {p.text}
+              </span>
+            ) : (
+              <span key={i}>{p.text}</span>
+            ),
+          )}
+        </span>
+      </p>
+    );
+  }
+  return (
+    <p className="mt-1.5 font-serif text-[1.65rem] leading-tight">
+      <span className="grifo">{m.mnemonico}</span>
+    </p>
+  );
+}
 
 /** Mnemônicos do tópico (aba Revisão). Gerar de novo substitui a lista. */
 export function MnemonicsPanel({ topicId }: { topicId: string }) {
@@ -88,27 +116,36 @@ export function MnemonicsPanel({ topicId }: { topicId: string }) {
           {items.map((m, i) => (
             <li
               key={i}
-              className="grid gap-x-8 gap-y-2 py-5 md:grid-cols-[minmax(0,14rem)_minmax(0,1fr)]"
+              className="grid gap-x-8 gap-y-2 py-5 md:grid-cols-[minmax(0,16rem)_minmax(0,1fr)]"
             >
               <div>
                 <p className={eyebrow}>
                   {m.lista}
                   {m.classico ? " · clássico" : ""}
                 </p>
-                <p className="mt-1.5 font-serif text-[1.65rem] leading-tight">
-                  <span className="grifo">{m.mnemonico}</span>
-                </p>
+                <MnemonicText m={m} />
               </div>
               <div>
                 <ol className="space-y-1 text-[0.98rem] leading-relaxed">
-                  {m.itens.map((it, j) => (
-                    <li key={j} className="flex gap-2.5">
-                      <span className="w-5 shrink-0 text-right font-mono text-xs leading-[1.7rem] text-muted-foreground tnum">
-                        {j + 1}
-                      </span>
-                      <span>{it}</span>
-                    </li>
-                  ))}
+                  {m.itens.map((it, j) => {
+                    const letter = m.tipo === "sigla" || m.tipo === "frase";
+                    return (
+                      <li key={j} className="flex items-baseline gap-2.5">
+                        <span
+                          className={cn(
+                            "w-5 shrink-0 text-right font-mono tnum",
+                            letter
+                              ? "text-sm font-semibold text-foreground"
+                              : "text-xs text-muted-foreground",
+                          )}
+                          aria-hidden={letter}
+                        >
+                          {letter ? displayInitial(it) : j + 1}
+                        </span>
+                        <span>{it}</span>
+                      </li>
+                    );
+                  })}
                 </ol>
                 {m.explicacao && (
                   <p className="mt-2 text-sm text-muted-foreground">{m.explicacao}</p>

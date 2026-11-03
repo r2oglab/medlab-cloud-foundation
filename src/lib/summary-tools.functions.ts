@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { askJson, PROFESSOR } from "./ai.server";
+import { checkMnemonic, type Mnemonic } from "./mnemonics";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Db = any;
@@ -71,6 +72,10 @@ function sanitize(html: string): string {
   return out;
 }
 
+/** Itálico só onde a convenção pede; proteínas, genes e fármacos ficam em texto normal. */
+const EM_RULE =
+  "Use <em> só para expressões em latim, nomes científicos de microrganismos ou um rótulo curto como 'Dica de prova:'. Nomes de proteínas, genes, citocinas e fármacos ficam sem itálico.";
+
 export const compareTable = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
@@ -88,6 +93,8 @@ Regras:
 - A primeira coluna é o critério. Células curtas (até 20 palavras), objetivas, só com conhecimento consolidado.
 - Depois da tabela, um parágrafo de 1 a 2 frases com a dica que mais diferencia um do outro na prova.
 - "html": só as tags table, thead, tbody, tr, th, td, p, strong, em. Sem markdown, sem asteriscos, sem estilos.
+- ${EM_RULE}
+- Revise a concordância e a ortografia antes de responder.
 - "title": título curto, por exemplo "Necrose × apoptose".
 Responda SOMENTE com JSON: { "title": "string", "html": "string" }`,
       `Tema do tópico: "${title}".
@@ -123,65 +130,93 @@ export const reexplainSection = createServerFn({ method: "POST" })
         section_title: z.string().trim().min(1).max(200),
         section_text: z.string().trim().min(1).max(12000),
         mode: z.enum(["simples", "fundo", "clinico"]),
+        focus: z.string().trim().max(160).optional(),
       })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
     const { title } = await grounding(context.supabase, data.topic_id);
-    const result = await askJson<{ html?: string }>(
+    const focus = data.focus
+      ? `Foco pedido pelo aluno: ${data.focus}. Concentre a explicação nisso.`
+      : "Sem foco definido: explique o ponto central da seção, não um detalhe lateral.";
+    const result = await askJson<{ title?: string; html?: string }>(
       `${PROFESSOR}
 Explique de novo UMA seção do resumo do aluno, do jeito pedido: ${MODES[data.mode]}
 Regras:
 - De 120 a 260 palavras. Não repita a seção com outras palavras: traga a explicação que faltou.
 - Use só conhecimento consolidado e coerente com o conteúdo da seção.
 - "html": só as tags p, ul, ol, li, strong, em. Sem títulos, sem markdown, sem asteriscos.
-Responda SOMENTE com JSON: { "html": "string" }`,
+- ${EM_RULE}
+- "title": de 2 a 6 palavras dizendo do que trata a explicação, por exemplo "Mecanismo dos glicocorticoides".
+Responda SOMENTE com JSON: { "title": "string", "html": "string" }`,
       `Tópico: "${title}".
 Seção: "${data.section_title}"
+${focus}
 Conteúdo da seção: ${data.section_text}`,
     );
     const html = sanitize(String(result.html ?? "")).replace(/<\/?h3>/g, "");
     if (html.replace(/<[^>]+>/g, "").trim().length < 40)
       throw new Error("A IA não devolveu uma explicação válida. Tente de novo.");
-    return { html };
+    const label = String(result.title ?? "")
+      .replace(/[<>*]/g, "")
+      .trim()
+      .slice(0, 80);
+    return { html, title: label };
   });
-
-export type Mnemonic = {
-  lista: string;
-  mnemonico: string;
-  itens: string[];
-  explicacao: string;
-  classico: boolean;
-};
 
 export const generateMnemonics = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => z.object({ topic_id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const { title, summaryText } = await grounding(context.supabase, data.topic_id);
-    const result = await askJson<{ mnemonics?: Partial<Mnemonic>[] }>(
-      `${PROFESSOR}
+    const ask = (extra: string) =>
+      askJson<{ mnemonics?: unknown[] }>(
+        `${PROFESSOR}
 Crie MNEMÔNICOS em português para as listas e classificações do tópico que mais caem em prova.
 Regras:
-- De 4 a 6 mnemônicos, cada um para uma lista real do conteúdo (sinais, causas, critérios, classificações, fármacos, etapas).
-- Se existir um mnemônico clássico e consagrado para a lista, use-o e marque "classico": true. Senão, crie um acrônimo ou frase curta, fácil de falar, e marque "classico": false.
-- "itens": os itens da lista, na mesma ordem das letras ou palavras do mnemônico. Nunca force um item errado para caber na sigla.
+- De 5 a 7 mnemônicos, cada um para uma lista real do conteúdo (sinais, causas, critérios, classificações, fármacos, etapas), com 3 a 7 itens.
+- "itens": os itens da lista, na ordem do mnemônico. Nunca troque nem force um item para caber nas letras.
+- "tipo":
+  "frase" (o padrão): uma frase curta, visual ou engraçada, fácil de falar, em que cada palavra-chave começa com a mesma letra do item da mesma posição. Palavras de ligação (e, de, o, a, com) podem aparecer entre elas. Em "chaves", liste as palavras-chave exatamente como estão na frase, uma palavra por item.
+  "sigla": só quando as iniciais dos itens, na ordem, formam uma palavra real ou fácil de ler em voz alta. Nunca entregue uma sigla impronunciável como "MRTQ"; nesse caso, faça uma frase.
+  "outro": só para mnemônicos clássicos que não usam iniciais (por exemplo, uma regra numérica).
+- Confira letra por letra: a primeira letra de cada item tem de ser igual à letra da sigla, ou à inicial da palavra-chave, na mesma posição.
+- "classico": true só se o mnemônico for amplamente ensinado nas faculdades de medicina do Brasil. Na dúvida, false. O que você acabou de criar nunca é clássico.
 - "explicacao": 1 frase dizendo como usar ou quando lembrar.
-- Texto puro, sem asteriscos.
-Responda SOMENTE com JSON: { "mnemonics": [{ "lista": "string", "mnemonico": "string", "itens": ["string"], "explicacao": "string", "classico": false }] }`,
-      `Tópico: "${title}".
+- Texto puro, sem asteriscos.${extra}
+Responda SOMENTE com JSON: { "mnemonics": [{ "lista": "string", "tipo": "frase", "mnemonico": "string", "chaves": ["string"], "itens": ["string"], "explicacao": "string", "classico": false }] }`,
+        `Tópico: "${title}".
 Resumo do tópico (base de conteúdo): ${summaryText || "não disponível"}`,
-    );
-    const items: Mnemonic[] = (result.mnemonics ?? [])
-      .filter((m) => m?.lista && m.mnemonico && Array.isArray(m.itens) && m.itens.length >= 2)
-      .slice(0, 6)
-      .map((m) => ({
-        lista: String(m.lista).trim(),
-        mnemonico: String(m.mnemonico).trim(),
-        itens: (m.itens as unknown[]).map((x) => String(x).trim()).filter(Boolean),
-        explicacao: String(m.explicacao ?? "").trim(),
-        classico: !!m.classico,
-      }));
+      );
+
+    const valid: Mnemonic[] = [];
+    const rejected: string[] = [];
+    const take = (list: unknown[] | undefined) => {
+      for (const raw of list ?? []) {
+        const m = checkMnemonic(raw);
+        const name = String((raw as { lista?: unknown })?.lista ?? "").trim();
+        if (!m) {
+          if (name)
+            rejected.push(`${name} (${String((raw as { mnemonico?: unknown }).mnemonico ?? "")})`);
+        } else if (!valid.some((v) => v.lista.toLowerCase() === m.lista.toLowerCase())) {
+          valid.push(m);
+        }
+      }
+    };
+
+    take((await ask("")).mnemonics);
+    // Se muitos vieram com letras erradas, pede de novo uma vez, dizendo o que falhou.
+    if (valid.length < 3) {
+      take(
+        (
+          await ask(
+            `\n- Na tentativa anterior, estes foram descartados porque as letras não batiam com os itens: ${rejected.join("; ") || "nenhum válido"}. Refaça conferindo letra por letra.`,
+          )
+        ).mnemonics,
+      );
+    }
+
+    const items = valid.slice(0, 6);
     if (!items.length) throw new Error("A IA não devolveu mnemônicos válidos. Tente de novo.");
     const { error } = await context.supabase.rpc("set_topic_material", {
       p_topic_id: data.topic_id,

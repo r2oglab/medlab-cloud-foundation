@@ -37,6 +37,42 @@ export function insertIntoSummary(
   return doc.body.innerHTML;
 }
 
+const NUMBERED = /^\s*\d+\.\s*/;
+const GLOSSARY = /termos importantes|gloss[áa]rio/i;
+
+/** Índice da seção "Termos importantes" (ou -1), que deve continuar sendo a última. */
+export function glossaryIndex(sections: SummarySection[]) {
+  return sections.findIndex((s) => GLOSSARY.test(s.title));
+}
+
+/**
+ * Seção nova (<h2>) antes de "Termos importantes", ou no fim se ela não existir.
+ * Se os títulos do resumo são numerados ("4. Etiologia…"), renumera todos.
+ */
+export function insertNewSection(html: string, title: string, bodyHtml: string): string {
+  const doc = parse(html);
+  const headings = () => Array.from(doc.body.children).filter((n) => n.tagName === "H2");
+  const before = headings().find((h) => GLOSSARY.test(h.textContent ?? "")) ?? null;
+  const h2 = doc.createElement("h2");
+  h2.textContent = title;
+  const body = Array.from(parse(bodyHtml).body.childNodes).map((n) => doc.importNode(n, true));
+  for (const n of [h2, ...body]) doc.body.insertBefore(n, before);
+
+  const all = headings();
+  const numbered = all.filter((h) => NUMBERED.test(h.textContent ?? "")).length;
+  if (numbered > 0 && numbered >= all.length - 1) {
+    all.forEach((h, i) => {
+      const walker = doc.createTreeWalker(h, NodeFilter.SHOW_TEXT);
+      let first = walker.nextNode() as Text | null;
+      while (first && !first.data.trim()) first = walker.nextNode() as Text | null;
+      if (first && NUMBERED.test(first.data))
+        first.data = first.data.replace(NUMBERED, `${i + 1}. `);
+      else h.insertBefore(doc.createTextNode(`${i + 1}. `), h.firstChild);
+    });
+  }
+  return doc.body.innerHTML;
+}
+
 export function escapeHtml(text: string) {
   return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
