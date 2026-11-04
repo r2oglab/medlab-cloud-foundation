@@ -42,7 +42,10 @@ export function AiWait({
     <span className={cn("inline-flex items-center gap-2 text-sm text-muted-foreground", className)}>
       <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
       <span>{label}</span>
-      <span aria-hidden className="font-mono text-xs tnum text-muted-foreground/80">
+      <span
+        aria-hidden
+        className="shrink-0 whitespace-nowrap font-mono text-xs tnum text-muted-foreground/80"
+      >
         {formatElapsed(seconds)}
       </span>
     </span>

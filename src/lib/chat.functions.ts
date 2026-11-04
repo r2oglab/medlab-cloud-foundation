@@ -52,15 +52,22 @@ export const askTopic = createServerFn({ method: "POST" })
         .maybeSingle(),
       supabase
         .from("topic_chat_messages")
-        .select("role, content")
+        .select("role, content, created_at")
         .eq("topic_id", data.topic_id)
         .order("created_at", { ascending: false })
         .limit(10),
     ]);
     if (!topic) throw new Error("Tópico não encontrado.");
 
-    // A pergunta fica salva antes da resposta: se a IA falhar, ela não se perde
-    if (!data.resend) {
+    // A pergunta fica salva antes da resposta: se a IA falhar, ela não se perde.
+    // Se a mesma pergunta acabou de ser salva (nova tentativa automática depois de
+    // "IA congestionada", ou clique duplo), não salva de novo.
+    const last = history?.[0];
+    const sameQuestionJustSaved =
+      last?.role === "user" &&
+      String(last.content).trim() === data.question &&
+      Date.now() - new Date(String(last.created_at)).getTime() < 10 * 60 * 1000;
+    if (!data.resend && !sameQuestionJustSaved) {
       const { error: userError } = await supabase
         .from("topic_chat_messages")
         .insert({ topic_id: data.topic_id, role: "user", content: data.question });
