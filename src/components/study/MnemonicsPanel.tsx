@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Loader2, RotateCcw, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { AiWait } from "@/components/study/AiWait";
 import { supabase } from "@/integrations/supabase/client";
 import { aiErrorMessage, withAiRetry } from "@/lib/ai-busy";
 import { cn } from "@/lib/utils";
@@ -97,6 +98,7 @@ export function MnemonicsPanel({ topicId }: { topicId: string }) {
           </Button>
         )}
       </div>
+      <AiWait active={busy} label="Criando os mnemônicos" className="mt-3" />
 
       {q.isLoading ? (
         <div

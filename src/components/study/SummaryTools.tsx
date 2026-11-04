@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { ChevronDown, Loader2, MessageSquareText, Sparkles, Table2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { AiWait } from "@/components/study/AiWait";
 import {
   Dialog,
   DialogContent,
@@ -261,15 +262,10 @@ function CompareDialog({ open, onOpenChange, topicId, html, sections, onChanged 
                 {busy === "gerando" ? "Montando…" : result ? "Gerar de novo" : "Gerar tabela"}
               </Button>
             </div>
-            <p
-              aria-live="polite"
-              className={cn(
-                "text-sm",
-                error ? "text-destructive" : note ? "text-muted-foreground" : "sr-only",
-              )}
-            >
+            <p aria-live="polite" className={cn("text-sm", error ? "text-destructive" : "sr-only")}>
               {error ?? note ?? (busy === "gerando" ? "Montando a tabela." : "")}
             </p>
+            <AiWait active={busy === "gerando" && !error} label={note ?? "Montando a tabela"} />
           </form>
 
           {result && (
@@ -471,13 +467,15 @@ function ExplainDialog({ open, onOpenChange, topicId, html, sections, onChanged 
 
           <p
             aria-live="polite"
-            className={cn(
-              "mt-2 text-sm",
-              error ? "text-destructive" : note ? "text-muted-foreground" : "sr-only",
-            )}
+            className={cn("mt-2 text-sm", error ? "text-destructive" : "sr-only")}
           >
             {error ?? note ?? (busy === "gerando" ? "Escrevendo a explicação." : "")}
           </p>
+          <AiWait
+            active={busy === "gerando" && !error}
+            label={note ?? "Escrevendo a explicação"}
+            className="mt-2"
+          />
 
           {result && (
             <div className="mt-3 rounded-lg border border-border bg-card px-4 py-3">

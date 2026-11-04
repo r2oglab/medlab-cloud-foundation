@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { AiWait } from "@/components/study/AiWait";
 import {
   Dialog,
   DialogContent,
@@ -526,12 +527,13 @@ function AddSource({
           aria-live="polite"
           className={cn(
             "mt-3 flex items-center gap-2 text-sm",
-            error ? "text-destructive" : busy ? "text-muted-foreground" : "sr-only",
+            error ? "text-destructive" : "sr-only",
           )}
         >
-          {busy && !error && <Loader2 className="size-4 animate-spin" aria-hidden />}
           {error ?? busy ?? ""}
         </p>
+        {/* Visível: círculo girando, a etapa atual e há quanto tempo está esperando */}
+        <AiWait active={!!busy && !error} label={busy ?? ""} className="mt-3" />
       </div>
       <div className={footerClass}>
         <Button variant="ghost" className="mr-auto" onClick={onBack} disabled={!!busy}>
@@ -706,12 +708,13 @@ function UpdateTopic({
           aria-live="polite"
           className={cn(
             "mt-4 flex items-center gap-2 text-sm",
-            error ? "text-destructive" : busy ? "text-muted-foreground" : "sr-only",
+            error ? "text-destructive" : "sr-only",
           )}
         >
-          {busy && !error && <Loader2 className="size-4 animate-spin" aria-hidden />}
           {error ?? busy ?? ""}
         </p>
+        {/* Visível: círculo girando, a etapa atual e há quanto tempo está esperando */}
+        <AiWait active={!!busy && !error} label={busy ?? ""} className="mt-3" />
 
         {!result && busy && (
           <div className="mt-4 grid gap-3" aria-hidden>

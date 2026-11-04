@@ -1,7 +1,8 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowUp, Loader2, MessageCircleQuestion, Trash2, X } from "lucide-react";
+import { ArrowUp, MessageCircleQuestion, Trash2, X } from "lucide-react";
+import { AiWait } from "@/components/study/AiWait";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,9 +14,12 @@ import { cn } from "@/lib/utils";
 type ChatRow = { id: string; role: "user" | "assistant"; content: string; created_at: string };
 
 const SUGGESTIONS = [
-  "Resuma este tópico em 5 pontos.",
-  "O que mais cai em prova sobre este tema?",
-  "Me faça uma pergunta de tutoria e corrija a minha resposta.",
+  { short: "Resumir", text: "Resuma este tópico em 5 pontos." },
+  { short: "O que cai em prova", text: "O que mais cai em prova sobre este tema?" },
+  {
+    short: "Treinar comigo",
+    text: "Treino: me faça uma pergunta de tutoria sobre este tópico e corrija a minha resposta.",
+  },
 ];
 
 const eyebrow =
@@ -219,13 +223,13 @@ export function TopicChat({
                 </p>
                 <ul className="mt-4 grid gap-2">
                   {SUGGESTIONS.map((s) => (
-                    <li key={s}>
+                    <li key={s.text}>
                       <button
                         type="button"
-                        onClick={() => void send(s)}
+                        onClick={() => void send(s.text)}
                         className="w-full rounded-lg border border-border px-3 py-2.5 text-left text-sm transition-colors hover:border-foreground/40 hover:bg-foreground/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
-                        {s}
+                        {s.text}
                       </button>
                     </li>
                   ))}
@@ -250,9 +254,8 @@ export function TopicChat({
                   </li>
                 )}
                 {pending && (
-                  <li className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Loader2 className="size-4 animate-spin" aria-hidden />
-                    {wait ?? "Pensando…"}
+                  <li>
+                    <AiWait active label={wait ?? "Pensando…"} />
                   </li>
                 )}
               </ol>
@@ -279,6 +282,23 @@ export function TopicChat({
             }}
             className="border-t border-border px-4 py-3"
           >
+            {/* Atalhos sempre à mão (antes só apareciam com a conversa vazia) */}
+            {rows.length > 0 && (
+              <div role="group" aria-label="Atalhos" className="mb-2 flex flex-wrap gap-1.5">
+                {SUGGESTIONS.map((s) => (
+                  <button
+                    key={s.short}
+                    type="button"
+                    disabled={!!pending}
+                    title={s.text}
+                    onClick={() => void send(s.text)}
+                    className="h-7 shrink-0 rounded-full border border-border px-3 text-xs text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40"
+                  >
+                    {s.short}
+                  </button>
+                ))}
+              </div>
+            )}
             <label htmlFor={inputId} className="sr-only">
               Sua pergunta
             </label>

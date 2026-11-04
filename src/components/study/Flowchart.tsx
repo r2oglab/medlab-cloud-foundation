@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { List, Loader2, RotateCcw, Sparkles, Workflow } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { AiWait } from "@/components/study/AiWait";
 import { Segmented } from "@/components/study/Segmented";
 import { supabase } from "@/integrations/supabase/client";
 import { aiErrorMessage, withAiRetry } from "@/lib/ai-busy";
@@ -150,15 +151,14 @@ export function Flowchart({ topicId }: { topicId: string }) {
         )}
       </div>
 
-      <p
-        aria-live="polite"
-        className={cn(
-          "mt-3 text-sm",
-          error ? "text-destructive" : retryMsg ? "text-muted-foreground" : "sr-only",
-        )}
-      >
-        {error ?? retryMsg ?? (busy ? "Montando o fluxograma. Leva uns 20 segundos." : "")}
+      <p aria-live="polite" className={cn("mt-3 text-sm", error ? "text-destructive" : "sr-only")}>
+        {error ?? retryMsg ?? (busy ? "Montando o fluxograma." : "")}
       </p>
+      <AiWait
+        active={busy && !error}
+        label={retryMsg ?? "Montando o fluxograma"}
+        className="mt-3"
+      />
 
       {q.isLoading ? (
         <div className="mt-6 h-72 animate-pulse rounded-lg bg-foreground/[0.04]" aria-busy="true" />

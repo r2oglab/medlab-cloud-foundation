@@ -527,3 +527,16 @@ mark.lab-highlight {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Indicadores de carregamento continuam se mexendo (mais devagar) mesmo com "reduzir
+   movimento" ligado no sistema: eles avisam que algo está acontecendo, não são enfeite. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-spin {
+    animation-duration: 1.6s !important;
+    animation-iteration-count: infinite !important;
+  }
+  .animate-pulse {
+    animation-duration: 2.4s !important;
+    animation-iteration-count: infinite !important;
+  }
+}
