@@ -10,6 +10,7 @@ import {
   Plus,
   RefreshCw,
   Trash2,
+  Undo2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ import {
   insertIntoSummary,
   insertNewSection,
   listSections,
+  removeSourceBlocks,
 } from "@/lib/summary-sections";
 import {
   addTopicSource,
@@ -83,6 +85,42 @@ export function SourcesDialog({
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["topic-sources", topicId] });
 
+  /** Tira do resumo o que a fonte acrescentou e volta a fonte para "não incluída". */
+  async function undo(s: TopicSourceRow) {
+    setBusy("Desfazendo…");
+    try {
+      const { data, error } = await supabase
+        .from("materials")
+        .select("content")
+        .eq("topic_id", topicId)
+        .eq("type", "summary")
+        .maybeSingle();
+      if (error) throw new Error("Não deu para ler o resumo atual.");
+      const current = String((data?.content as { html?: string } | null)?.html ?? "");
+      const { html, removed } = removeSourceBlocks(current, sourceLabel(s.name));
+      if (removed) {
+        const { error: saveErr } = await supabase
+          .from("materials")
+          .update({ content: { html } })
+          .eq("topic_id", topicId)
+          .eq("type", "summary");
+        if (saveErr) throw new Error("Não deu para salvar o resumo.");
+      }
+      await supabase.from("topic_sources").update({ merged_at: null }).eq("id", s.id);
+      await refresh();
+      await onApplied();
+      toast.success(
+        removed
+          ? `${removed} trecho${removed > 1 ? "s" : ""} da fonte saíram do resumo. Os flashcards e questões criados continuam.`
+          : "Não achei trechos dessa fonte no resumo; ela voltou a ficar como não incluída.",
+      );
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não deu para desfazer.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={(o) => !busy && onOpenChange(o)}>
       <DialogContent className={shell}>
@@ -98,6 +136,8 @@ export function SourcesDialog({
               setView("atualizar");
             }}
             onRemoved={refresh}
+            onUndo={(src) => void undo(src)}
+            busy={!!busy}
             onClose={() => onOpenChange(false)}
           />
         )}
@@ -143,6 +183,8 @@ function SourceList({
   onAdd,
   onUpdate,
   onRemoved,
+  onUndo,
+  busy,
   onClose,
 }: {
   topicId: string;
@@ -152,9 +194,12 @@ function SourceList({
   onAdd: () => void;
   onUpdate: (s: TopicSourceRow) => void;
   onRemoved: () => void;
+  onUndo: (s: TopicSourceRow) => void;
+  busy: boolean;
   onClose: () => void;
 }) {
   const [confirming, setConfirming] = useState<string | null>(null);
+  const [undoing, setUndoing] = useState<string | null>(null);
   const date = (iso: string) =>
     new Date(iso).toLocaleDateString("pt-BR", { day: "numeric", month: "short" });
 
@@ -206,9 +251,37 @@ function SourceList({
                   </p>
                 </div>
                 <div className="flex items-center gap-1">
+                  {s.merged_at &&
+                    (undoing === s.id ? (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-destructive hover:text-destructive"
+                        autoFocus
+                        disabled={busy}
+                        onBlur={() => setUndoing(null)}
+                        onClick={() => {
+                          setUndoing(null);
+                          onUndo(s);
+                        }}
+                      >
+                        Tirar do resumo?
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={busy}
+                        onClick={() => setUndoing(s.id)}
+                        title="Tira do resumo os trechos que esta fonte acrescentou"
+                      >
+                        <Undo2 className="size-4" aria-hidden /> Desfazer
+                      </Button>
+                    ))}
                   <Button
                     size="sm"
                     variant={s.merged_at ? "ghost" : "default"}
+                    disabled={busy}
                     onClick={() => onUpdate(s)}
                   >
                     <RefreshCw className="size-4" aria-hidden />
@@ -251,7 +324,8 @@ function SourceList({
         </ul>
         {!loading && sources.length > 0 && (
           <p className="mt-3 text-xs text-muted-foreground">
-            Remover uma fonte não apaga o que ela já acrescentou ao resumo.
+            “Desfazer” tira do resumo os trechos que a fonte acrescentou. Remover a fonte (lixeira)
+            não mexe no resumo.
           </p>
         )}
       </div>
