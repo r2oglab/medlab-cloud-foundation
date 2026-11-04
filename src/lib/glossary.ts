@@ -94,12 +94,21 @@ export function extractTerms(html: string) {
   return out;
 }
 
+/**
+ * Só a origem da palavra: "do latim exsudare (suar para fora)", sem o resto da frase
+ * que às vezes vem colado ("…, caracterizando o líquido…"). Aceita "x (…) + y (…)".
+ */
+export function trimEtymology(text: string) {
+  const m = text.match(/^do (?:latim|grego)[^()]*\([^)]*\)(?:\s*\+\s*[^()]*\([^)]*\))*/i);
+  return (m?.[0] ?? text.split(/[.;]/)[0] ?? text).trim();
+}
+
 /** Etimologias ("palavra: do latim/grego …") em qualquer parte do resumo. */
 export function extractEtymologies(html: string) {
   const out = new Map<string, string>();
   for (const m of html.matchAll(/<(p|li)[^>]*>([\s\S]*?)<\/\1>/gi)) {
     const it = splitItem(m[2] ?? "");
-    if (it && /^do (latim|grego)/i.test(it.rest)) out.set(termKey(it.term), it.rest);
+    if (it && /^do (latim|grego)/i.test(it.rest)) out.set(termKey(it.term), trimEtymology(it.rest));
   }
   return out;
 }

@@ -36,6 +36,7 @@ import { McqPractice } from "@/components/study/McqPractice";
 import { Esquema, type PracticeTarget } from "@/components/study/Esquema";
 import { ExportDialog } from "@/components/study/ExportDialog";
 import { SourcesDialog } from "@/components/study/SourcesDialog";
+import { TopicChat } from "@/components/study/TopicChat";
 import { useTopicSources } from "@/lib/topic-sources";
 import { Flowchart } from "@/components/study/Flowchart";
 import { Segmented } from "@/components/study/Segmented";
@@ -843,6 +844,22 @@ function TopicPage() {
           <RevisaoTab topicId={id} review={d.review} maskMode={maskMode} />
         </TabsContent>
       </Tabs>
+
+      <TopicChat
+        topicId={id}
+        topicTitle={displayTitle}
+        onGoToSection={(title) => {
+          // Abre o Resumo e rola até a seção citada pelo tutor
+          setTab("resumo");
+          window.setTimeout(() => {
+            const heading = Array.from(
+              document.querySelectorAll<HTMLElement>(".resumo-editor .ProseMirror h2"),
+            ).find((el) => el.textContent?.replace(/\s+/g, " ").trim() === title);
+            const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+            heading?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+          }, 150);
+        }}
+      />
     </main>
   );
 }

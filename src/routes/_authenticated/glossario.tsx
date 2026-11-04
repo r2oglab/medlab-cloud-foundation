@@ -280,7 +280,7 @@ function Entry({ entry }: { entry: GlossaryEntry }) {
   }
 
   return (
-    <div className="group grid gap-x-8 gap-y-1.5 py-4 md:grid-cols-[minmax(0,13rem)_minmax(0,1fr)]">
+    <div className="group grid gap-x-8 gap-y-1.5 py-4 md:grid-cols-[minmax(0,13rem)_minmax(0,1fr)_auto]">
       <dt className="font-serif text-[1.3rem] leading-snug">{entry.term}</dt>
       <dd className="min-w-0">
         {entry.etymology && (
@@ -300,15 +300,6 @@ function Entry({ entry }: { entry: GlossaryEntry }) {
             </li>
           ))}
         </ul>
-        <button
-          type="button"
-          onClick={() => void toFlashcard()}
-          disabled={saving}
-          className="mt-1 inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-xs text-muted-foreground transition-[opacity,color,background-color] hover:bg-foreground/[0.06] sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
-        >
-          <Layers className="size-3.5" aria-hidden />
-          {saving ? "Criando…" : "Virar flashcard"}
-        </button>
       </dd>
     </div>
   );
