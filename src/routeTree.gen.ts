@@ -14,6 +14,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedErrosRouteImport } from './routes/_authenticated/erros'
 import { Route as AuthenticatedEstatisticasRouteImport } from './routes/_authenticated/estatisticas'
+import { Route as AuthenticatedGlossarioRouteImport } from './routes/_authenticated/glossario'
 import { Route as AuthenticatedProvaRouteImport } from './routes/_authenticated/prova'
 import { Route as AuthenticatedTopicoIdRouteImport } from './routes/_authenticated/topico.$id'
 
@@ -42,6 +43,11 @@ const AuthenticatedEstatisticasRoute =
     path: '/estatisticas',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedGlossarioRoute = AuthenticatedGlossarioRouteImport.update({
+  id: '/glossario',
+  path: '/glossario',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedProvaRoute = AuthenticatedProvaRouteImport.update({
   id: '/prova',
   path: '/prova',
@@ -58,6 +64,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/erros': typeof AuthenticatedErrosRoute
   '/estatisticas': typeof AuthenticatedEstatisticasRoute
+  '/glossario': typeof AuthenticatedGlossarioRoute
   '/prova': typeof AuthenticatedProvaRoute
   '/topico/$id': typeof AuthenticatedTopicoIdRoute
 }
@@ -65,6 +72,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/erros': typeof AuthenticatedErrosRoute
   '/estatisticas': typeof AuthenticatedEstatisticasRoute
+  '/glossario': typeof AuthenticatedGlossarioRoute
   '/prova': typeof AuthenticatedProvaRoute
   '/': typeof AuthenticatedIndexRoute
   '/topico/$id': typeof AuthenticatedTopicoIdRoute
@@ -75,6 +83,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/erros': typeof AuthenticatedErrosRoute
   '/_authenticated/estatisticas': typeof AuthenticatedEstatisticasRoute
+  '/_authenticated/glossario': typeof AuthenticatedGlossarioRoute
   '/_authenticated/prova': typeof AuthenticatedProvaRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/topico/$id': typeof AuthenticatedTopicoIdRoute
@@ -82,15 +91,29 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/auth' | '/erros' | '/estatisticas' | '/prova' | '/topico/$id'
+    | '/'
+    | '/auth'
+    | '/erros'
+    | '/estatisticas'
+    | '/glossario'
+    | '/prova'
+    | '/topico/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/auth' | '/erros' | '/estatisticas' | '/prova' | '/' | '/topico/$id'
+  to:
+    | '/auth'
+    | '/erros'
+    | '/estatisticas'
+    | '/glossario'
+    | '/prova'
+    | '/'
+    | '/topico/$id'
   id:
     | '__root__'
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/erros'
     | '/_authenticated/estatisticas'
+    | '/_authenticated/glossario'
     | '/_authenticated/prova'
     | '/_authenticated/'
     | '/_authenticated/topico/$id'
@@ -138,6 +161,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedEstatisticasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/glossario': {
+      id: '/_authenticated/glossario'
+      path: '/glossario'
+      fullPath: '/glossario'
+      preLoaderRoute: typeof AuthenticatedGlossarioRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/prova': {
       id: '/_authenticated/prova'
       path: '/prova'
@@ -158,6 +188,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedErrosRoute: typeof AuthenticatedErrosRoute
   AuthenticatedEstatisticasRoute: typeof AuthenticatedEstatisticasRoute
+  AuthenticatedGlossarioRoute: typeof AuthenticatedGlossarioRoute
   AuthenticatedProvaRoute: typeof AuthenticatedProvaRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedTopicoIdRoute: typeof AuthenticatedTopicoIdRoute
@@ -166,6 +197,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedErrosRoute: AuthenticatedErrosRoute,
   AuthenticatedEstatisticasRoute: AuthenticatedEstatisticasRoute,
+  AuthenticatedGlossarioRoute: AuthenticatedGlossarioRoute,
   AuthenticatedProvaRoute: AuthenticatedProvaRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedTopicoIdRoute: AuthenticatedTopicoIdRoute,

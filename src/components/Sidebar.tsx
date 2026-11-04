@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { BookX, ChartNoAxesColumn, ChevronRight, Ellipsis, FolderPlus, GraduationCap, LogOut, NotebookPen, Plus, Search } from "lucide-react";
+import { BookA, BookX, ChartNoAxesColumn, ChevronRight, Ellipsis, FolderPlus, GraduationCap, LogOut, NotebookPen, Plus, Search } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { BrandMark, Wordmark } from "@/components/BrandMark";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
@@ -409,6 +409,14 @@ function SidebarContent({ pathname, onNewTopic }: { pathname: string; onNewTopic
               <span className="sr-only"> para revisar</span>
             </span>
           )}
+        </Link>
+        <Link
+          to="/glossario"
+          className={navItem(pathname.startsWith("/glossario"))}
+          aria-current={pathname.startsWith("/glossario") ? "page" : undefined}
+        >
+          <BookA className="size-[18px]" aria-hidden />
+          Glossário
         </Link>
         <Link
           to="/estatisticas"
