@@ -15,8 +15,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { QuestionStem } from "@/components/study/QuestionStem";
+import { AiWait } from "@/components/study/AiWait";
 import { supabase } from "@/integrations/supabase/client";
-import { aiErrorMessage } from "@/lib/ai-busy";
+import { aiErrorMessage, aiRetryLabel, withAiRetry } from "@/lib/ai-busy";
 import { cn } from "@/lib/utils";
 import { scoreFormat, useEssays, type EssayAnswer, type EssayQuestion } from "@/lib/essays";
 import { generateEssayQuestions, gradeEssay } from "@/lib/essays.functions";
@@ -54,6 +55,7 @@ export function EssayPractice({ topicId }: { topicId: string }) {
   const generate = useServerFn(generateEssayQuestions);
   const [idx, setIdx] = useState(0);
   const [generating, setGenerating] = useState(false);
+  const [retryMsg, setRetryMsg] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const questions = essays.data?.questions ?? [];
@@ -65,7 +67,10 @@ export function EssayPractice({ topicId }: { topicId: string }) {
     setGenerating(true);
     try {
       const before = questions.length;
-      await generate({ data: { topic_id: topicId, count } });
+      await withAiRetry(
+        () => generate({ data: { topic_id: topicId, count } }),
+        (s) => setRetryMsg(aiRetryLabel(s)),
+      );
       await queryClient.invalidateQueries({ queryKey: ["essays", topicId] });
       setIdx(before); // vai direto para a primeira pergunta nova
       toast.success(count === 1 ? "Pergunta criada." : `${count} perguntas criadas.`);
@@ -73,8 +78,16 @@ export function EssayPractice({ topicId }: { topicId: string }) {
       toast.error(aiErrorMessage(e, "Não deu para gerar as perguntas."));
     } finally {
       setGenerating(false);
+      setRetryMsg(null);
     }
   }
+
+  // Aviso para leitor de tela (o contador visível fica de fora: seria lido a cada segundo)
+  const generatingLive = (
+    <p aria-live="polite" className="sr-only">
+      {generating ? (retryMsg ?? "Criando as perguntas.") : ""}
+    </p>
+  );
 
   async function handleDelete() {
     if (!q) return;
@@ -122,6 +135,12 @@ export function EssayPractice({ topicId }: { topicId: string }) {
           )}
           {generating ? "Criando perguntas…" : "Criar 3 perguntas discursivas"}
         </Button>
+        {generatingLive}
+        {generating && (
+          <div className="mt-4">
+            <AiWait active label={retryMsg ?? "Escrevendo as perguntas e o gabarito"} />
+          </div>
+        )}
       </div>
     );
   }
@@ -205,6 +224,12 @@ export function EssayPractice({ topicId }: { topicId: string }) {
             )}
             {generating ? "Criando…" : "Criar mais 2"}
           </Button>
+          {generatingLive}
+          <AiWait
+            active={generating}
+            label={retryMsg ?? "Escrevendo as perguntas"}
+            className="mt-3 flex"
+          />
         </div>
       </aside>
 
@@ -249,6 +274,7 @@ function EssayAnswerBox({
   const hintId = useId();
   const [text, setText] = useState(() => readDraft(question.id));
   const [grading, setGrading] = useState(false);
+  const [retryMsg, setRetryMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   // Resultado mostrado: o da correção que acabou de acontecer, senão a última salva.
   const [result, setResult] = useState<EssayAnswer | null>(history[0] ?? null);
@@ -274,7 +300,10 @@ function EssayAnswerBox({
     setError(null);
     setGrading(true);
     try {
-      const r = await grade({ data: { question_id: question.id, answer: text.trim() } });
+      const r = await withAiRetry(
+        () => grade({ data: { question_id: question.id, answer: text.trim() } }),
+        (s) => setRetryMsg(aiRetryLabel(s)),
+      );
       setResult({
         id: r.id,
         question_id: question.id,
@@ -294,6 +323,7 @@ function EssayAnswerBox({
       );
     } finally {
       setGrading(false);
+      setRetryMsg(null);
     }
   }
 
@@ -318,18 +348,26 @@ function EssayAnswerBox({
             autoComplete="off"
             aria-describedby={hintId}
             aria-invalid={!!error}
+            readOnly={grading}
             placeholder="Escreva como numa prova: o mecanismo, a relação com os achados e a conclusão…"
             className="mt-2 block min-h-[220px] w-full resize-y rounded-lg border border-input bg-card px-4 py-3 text-[1rem] leading-relaxed outline-none transition-[border-color,box-shadow] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:shadow-[0_0_0_3px_color-mix(in_srgb,var(--color-ring)_18%,transparent)]"
           />
           <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-            <p
-              id={hintId}
-              className={cn("text-xs", error ? "text-destructive" : "text-muted-foreground")}
-              aria-live="polite"
-            >
-              {error ??
-                `${words} ${words === 1 ? "palavra" : "palavras"} · rascunho salvo neste navegador`}
+            {/* A contagem de palavras muda a cada tecla: fica fora do aviso falado */}
+            <p aria-live="polite" className="sr-only">
+              {grading ? (retryMsg ?? "Corrigindo a resposta.") : (error ?? "")}
             </p>
+            {grading ? (
+              <AiWait active label={retryMsg ?? "Corrigindo e comparando com o gabarito"} />
+            ) : (
+              <p
+                id={hintId}
+                className={cn("text-xs", error ? "text-destructive" : "text-muted-foreground")}
+              >
+                {error ??
+                  `${words} ${words === 1 ? "palavra" : "palavras"} · rascunho salvo neste navegador`}
+              </p>
+            )}
             <div className="flex gap-2">
               {result && (
                 <Button
@@ -341,13 +379,9 @@ function EssayAnswerBox({
                   Ver última correção
                 </Button>
               )}
+              {/* Enquanto corrige, o círculo e o tempo ficam só na linha da esquerda */}
               <Button type="submit" disabled={grading}>
-                {grading ? (
-                  <Loader2 className="size-4 animate-spin" aria-hidden />
-                ) : (
-                  <Sparkles className="size-4" aria-hidden />
-                )}
-                {grading ? "Corrigindo…" : "Corrigir com IA"}
+                <Sparkles className="size-4" aria-hidden /> Corrigir com IA
               </Button>
             </div>
           </div>

@@ -203,7 +203,7 @@ export function TopicChat({
             role="log"
             aria-live="polite"
             aria-label="Conversa"
-            className="min-h-0 flex-1 overflow-y-auto px-5 py-4"
+            className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4"
           >
             {messages.isLoading ? (
               <div className="space-y-3" aria-busy="true">

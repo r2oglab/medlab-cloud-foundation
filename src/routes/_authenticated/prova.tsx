@@ -23,6 +23,8 @@ import { cn } from "@/lib/utils";
 import { delatex } from "@/lib/delatex";
 import { splitVignette } from "@/lib/vignette";
 import { QuestionStem } from "@/components/study/QuestionStem";
+import { AiWait } from "@/components/study/AiWait";
+import { aiErrorMessage, aiRetryLabel, withAiRetry } from "@/lib/ai-busy";
 import { cleanTitle, useTopicsList } from "@/lib/topics-index";
 import { useFolders } from "@/lib/folders";
 import { recordAttempts } from "@/lib/attempts";
@@ -77,6 +79,7 @@ function ExamPage() {
   const [answers, setAnswers] = useState<(number | null)[]>([]);
   const [current, setCurrent] = useState(0);
   const [building, setBuilding] = useState(false);
+  const [buildMsg, setBuildMsg] = useState<string | null>(null);
   const [seconds, setSeconds] = useState<number[]>([]);
   const [totalSeconds, setTotalSeconds] = useState(0);
   const generateMore = useServerFn(generateMoreMcq);
@@ -102,6 +105,7 @@ function ExamPage() {
       return;
     }
     setBuilding(true);
+    setBuildMsg(null);
     try {
       const fetchPool = async () => {
         const { data, error } = await supabase
@@ -141,10 +145,18 @@ function ExamPage() {
         }
 
         if (asks.length) {
-          toast.info(`Gerando ${needed - remaining} questões novas pra evitar repetir a prática…`);
+          const novas = needed - remaining;
+          const label = `Gerando ${novas} ${novas === 1 ? "questão nova" : "questões novas"} para não repetir a prática`;
+          setBuildMsg(label);
           for (const a of asks) {
             try {
-              await generateMore({ data: a });
+              await withAiRetry(
+                () => generateMore({ data: a }),
+                (s) => {
+                  setBuildMsg(aiRetryLabel(s));
+                  window.setTimeout(() => setBuildMsg(label), s * 1000);
+                },
+              );
             } catch (e) {
               console.error("Falha ao gerar questões extras pra prova", e);
             }
@@ -185,9 +197,10 @@ function ExamPage() {
       setCurrent(0);
       setStage("running");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Falha ao montar a prova.");
+      toast.error(aiErrorMessage(e, "Falha ao montar a prova."));
     } finally {
       setBuilding(false);
+      setBuildMsg(null);
     }
   }
 
@@ -217,7 +230,14 @@ function ExamPage() {
       questions.flatMap((q, i) =>
         answers[i] === null || answers[i] === undefined
           ? []
-          : [{ question_id: q.id, chosen_index: answers[i]!, source: "prova" as const, exam_attempt_id: exam?.id ?? null }],
+          : [
+              {
+                question_id: q.id,
+                chosen_index: answers[i]!,
+                source: "prova" as const,
+                exam_attempt_id: exam?.id ?? null,
+              },
+            ],
       ),
     );
     void queryClient.invalidateQueries({ queryKey: ["mcq-attempts"] });
@@ -309,9 +329,19 @@ function ExamPage() {
   const moduleGroups = (folders.data ?? [])
     .filter((f) => !f.parent_id)
     .map((m) => {
-      const inside = new Set([m.id, ...(folders.data ?? []).filter((f) => f.parent_id === m.id).map((f) => f.id)]);
-      const ids = (topics.data ?? []).filter((t) => t.folder_id && inside.has(t.folder_id)).map((t) => t.id);
-      return { id: m.id, name: m.name, ids, all: ids.length > 0 && ids.every((id) => selected.includes(id)) };
+      const inside = new Set([
+        m.id,
+        ...(folders.data ?? []).filter((f) => f.parent_id === m.id).map((f) => f.id),
+      ]);
+      const ids = (topics.data ?? [])
+        .filter((t) => t.folder_id && inside.has(t.folder_id))
+        .map((t) => t.id);
+      return {
+        id: m.id,
+        name: m.name,
+        ids,
+        all: ids.length > 0 && ids.every((id) => selected.includes(id)),
+      };
     })
     .filter((g) => g.ids.length > 0);
   const allSelected = allIds.length > 0 && allIds.every((id) => selected.includes(id));
@@ -371,7 +401,11 @@ function ExamPage() {
             {topics.isLoading ? (
               <div className="mt-4 space-y-3" aria-hidden>
                 {[70, 55, 80].map((w, i) => (
-                  <div key={i} className="h-5 rounded bg-foreground/[0.06]" style={{ width: `${w}%` }} />
+                  <div
+                    key={i}
+                    className="h-5 rounded bg-foreground/[0.06]"
+                    style={{ width: `${w}%` }}
+                  />
                 ))}
               </div>
             ) : !topics.data?.length ? (
@@ -380,56 +414,62 @@ function ExamPage() {
               </p>
             ) : (
               <>
-              {moduleGroups.length > 0 && (
-                <div role="group" aria-label="Selecionar por pasta" className="mt-4 flex flex-wrap items-center gap-1.5">
-                  <span className="mr-1 text-sm text-muted-foreground">Por pasta:</span>
-                  {moduleGroups.map((g) => (
-                    <button
-                      key={g.id}
-                      type="button"
-                      aria-pressed={g.all}
-                      onClick={() =>
-                        setSelected((s) =>
-                          g.all ? s.filter((id) => !g.ids.includes(id)) : [...new Set([...s, ...g.ids])],
-                        )
-                      }
-                      className={cn(
-                        "h-8 rounded-md border px-3 text-[0.8125rem] transition-colors",
-                        g.all
-                          ? "border-foreground bg-foreground text-background"
-                          : "border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground",
-                      )}
-                    >
-                      {g.name} <span className="tnum opacity-70">({g.ids.length})</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-              <ul className="grid sm:grid-cols-2 sm:gap-x-8">
-                {topics.data.map((t) => {
-                  const checked = selected.includes(t.id);
-                  return (
-                    <li key={t.id} className="border-b border-border">
-                      <label className="flex min-h-12 cursor-pointer items-center gap-3 py-2.5 text-[0.95rem]">
-                        <Checkbox
-                          checked={checked}
-                          onCheckedChange={(v) =>
-                            setSelected((s) => (v ? [...s, t.id] : s.filter((id) => id !== t.id)))
-                          }
-                        />
-                        <span
-                          className={cn(
-                            "leading-snug",
-                            checked ? "text-foreground" : "text-foreground/80",
-                          )}
-                        >
-                          {cleanTitle(t.title)}
-                        </span>
-                      </label>
-                    </li>
-                  );
-                })}
-              </ul>
+                {moduleGroups.length > 0 && (
+                  <div
+                    role="group"
+                    aria-label="Selecionar por pasta"
+                    className="mt-4 flex flex-wrap items-center gap-1.5"
+                  >
+                    <span className="mr-1 text-sm text-muted-foreground">Por pasta:</span>
+                    {moduleGroups.map((g) => (
+                      <button
+                        key={g.id}
+                        type="button"
+                        aria-pressed={g.all}
+                        onClick={() =>
+                          setSelected((s) =>
+                            g.all
+                              ? s.filter((id) => !g.ids.includes(id))
+                              : [...new Set([...s, ...g.ids])],
+                          )
+                        }
+                        className={cn(
+                          "h-8 rounded-md border px-3 text-[0.8125rem] transition-colors",
+                          g.all
+                            ? "border-foreground bg-foreground text-background"
+                            : "border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground",
+                        )}
+                      >
+                        {g.name} <span className="tnum opacity-70">({g.ids.length})</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <ul className="grid sm:grid-cols-2 sm:gap-x-8">
+                  {topics.data.map((t) => {
+                    const checked = selected.includes(t.id);
+                    return (
+                      <li key={t.id} className="border-b border-border">
+                        <label className="flex min-h-12 cursor-pointer items-center gap-3 py-2.5 text-[0.95rem]">
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(v) =>
+                              setSelected((s) => (v ? [...s, t.id] : s.filter((id) => id !== t.id)))
+                            }
+                          />
+                          <span
+                            className={cn(
+                              "leading-snug",
+                              checked ? "text-foreground" : "text-foreground/80",
+                            )}
+                          >
+                            {cleanTitle(t.title)}
+                          </span>
+                        </label>
+                      </li>
+                    );
+                  })}
+                </ul>
               </>
             )}
             <p className="mt-3 text-xs text-muted-foreground tnum">
@@ -477,6 +517,14 @@ function ExamPage() {
             {building ? "Montando a prova…" : "Iniciar prova"}{" "}
             {!building && <ArrowRight className="size-4" aria-hidden />}
           </Button>
+          <AiWait
+            active={building}
+            label={buildMsg ?? "Separando as questões"}
+            className="mt-4 flex"
+          />
+          <p aria-live="polite" className="sr-only">
+            {building ? (buildMsg ?? "Montando a prova.") : ""}
+          </p>
         </div>
       )}
 
@@ -649,7 +697,9 @@ function ExamPage() {
 
           {wrongCount > 0 && (
             <p className="-mt-4 text-sm text-muted-foreground">
-              {wrongCount === 1 ? "A questão que você errou foi" : `As ${wrongCount} questões que você errou foram`}{" "}
+              {wrongCount === 1
+                ? "A questão que você errou foi"
+                : `As ${wrongCount} questões que você errou foram`}{" "}
               para o{" "}
               <Link
                 to="/erros"

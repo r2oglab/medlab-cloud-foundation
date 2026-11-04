@@ -26,8 +26,9 @@ import {
   transcribeTopicSource,
 } from "@/lib/source.functions";
 import { Checkbox } from "@/components/ui/checkbox";
-import { aiErrorMessage, withAiRetry } from "@/lib/ai-busy";
+import { aiErrorMessage, aiRetryLabel, withAiRetry } from "@/lib/ai-busy";
 import { Button } from "@/components/ui/button";
+import { AiWait } from "@/components/study/AiWait";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -82,6 +83,8 @@ const EXAMPLES = [
   "Hipersensibilidade tipo I",
   "Insuficiência cardíaca",
 ];
+
+const MB = new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
 function Index() {
   const [topic, setTopic] = useState("");
@@ -138,9 +141,11 @@ function Index() {
   const [dragging, setDragging] = useState(false);
 
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
-  const [moveTarget, setMoveTarget] = useState<{ id: string; title: string; folder_id: string | null } | null>(
-    null,
-  );
+  const [moveTarget, setMoveTarget] = useState<{
+    id: string;
+    title: string;
+    folder_id: string | null;
+  } | null>(null);
   const folders = useFolders();
   const modules = useMemo(() => (folders.data ?? []).filter((f) => !f.parent_id), [folders.data]);
   // Filtro por pasta: "todos", "sem-pasta" ou o id de um módulo (inclui os problemas dele).
@@ -176,7 +181,14 @@ function Index() {
     return (topics.data ?? [])
       .map((t) => ({ ...t, label: cleanTitle(t.title), path: folderPath(all, t.folder_id) }))
       .filter((t) => inFilter(t.folder_id))
-      .filter((t) => !q || t.label.replace(/\u00A0/g, " ").toLocaleLowerCase("pt-BR").includes(q));
+      .filter(
+        (t) =>
+          !q ||
+          t.label
+            .replace(/\u00A0/g, " ")
+            .toLocaleLowerCase("pt-BR")
+            .includes(q),
+      );
   }, [topics.data, folders.data, folderFilter, search]);
 
   const totals = progress.data?.totals;
@@ -200,7 +212,7 @@ function Index() {
     }
     const maxBytes = 50 * 1024 * 1024;
     if (file.size > maxBytes) {
-      toast.error("Arquivo muito grande — o limite é 50MB.");
+      toast.error("Arquivo muito grande — o limite é 50 MB.");
       return;
     }
     setTopic("");
@@ -262,12 +274,9 @@ function Index() {
     return res;
   }
 
-  /** IA congestionada: avisa e mostra a espera; o withAiRetry tenta de novo sozinho. */
+  /** IA congestionada: mostra a espera na linha de status; o withAiRetry tenta de novo sozinho. */
   function onAiBusy(waitSeconds: number, nextStage: string) {
-    toast.info(
-      `O servidor da IA está congestionado — tentando de novo em ${waitSeconds}s. Pode demorar alguns segundos a mais.`,
-    );
-    setStage(`Servidor da IA congestionado, tentando de novo em ${waitSeconds}s…`);
+    setStage(aiRetryLabel(waitSeconds));
     setTimeout(() => setStage(nextStage), waitSeconds * 1000);
   }
 
@@ -342,7 +351,7 @@ function Index() {
                 <span className="truncate text-lg sm:text-xl">{attachedFile.file.name}</span>
                 <span className="shrink-0 text-xs text-muted-foreground tnum">
                   {attachedFile.kind.toUpperCase()} ·{" "}
-                  {(attachedFile.file.size / 1024 / 1024).toFixed(1).replace(".", ",")} MB
+                  {MB.format(attachedFile.file.size / 1024 / 1024)}&nbsp;MB
                 </span>
                 <button
                   type="button"
@@ -433,11 +442,17 @@ function Index() {
               envie o PDF. A prévia fica mais fiel e não precisa de conversão.
             </p>
           )}
-          <p aria-live="polite" className={cn("text-sm text-muted-foreground", loading && "mt-3")}>
-            {loading
-              ? `${stage ?? "Gerando o material…"} Isso costuma levar de 20 a 90 segundos.`
-              : ""}
+          <p aria-live="polite" className="sr-only">
+            {loading ? (stage ?? "Gerando o material…") : ""}
           </p>
+          {loading && (
+            <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1">
+              <AiWait active label={stage ?? "Gerando o material…"} />
+              <span className="text-xs text-muted-foreground">
+                Costuma levar de 20 a 90 segundos.
+              </span>
+            </div>
+          )}
           {!loading && !attachedFile && (
             <p className="mt-3 flex flex-wrap items-center gap-x-1 text-sm text-muted-foreground">
               <span className="mr-1">Sugestões:</span>
@@ -512,7 +527,11 @@ function Index() {
 
         {modules.length > 0 && (
           <div role="group" aria-label="Filtrar por pasta" className="mb-4 flex flex-wrap gap-1.5">
-            {[{ id: "todos", name: "Todos" }, ...modules, { id: "sem-pasta", name: "Sem pasta" }].map((f) => (
+            {[
+              { id: "todos", name: "Todos" },
+              ...modules,
+              { id: "sem-pasta", name: "Sem pasta" },
+            ].map((f) => (
               <button
                 key={f.id}
                 type="button"
@@ -560,7 +579,9 @@ function Index() {
           </div>
         ) : !filtered.length ? (
           <p className="py-8 text-center text-sm text-muted-foreground">
-            {search.trim() ? `Nenhum tópico encontrado para “${search.trim()}”.` : "Nenhum tópico nesta pasta."}
+            {search.trim()
+              ? `Nenhum tópico encontrado para “${search.trim()}”.`
+              : "Nenhum tópico nesta pasta."}
           </p>
         ) : (
           <ul className="divide-y divide-border border-b border-border">
@@ -583,7 +604,9 @@ function Index() {
                       {t.label}
                     </Link>
                     {t.path && (
-                      <p className="relative z-[1] mt-1 truncate text-xs text-muted-foreground">{t.path}</p>
+                      <p className="relative z-[1] mt-1 truncate text-xs text-muted-foreground">
+                        {t.path}
+                      </p>
                     )}
                     <p className="mt-1.5 text-xs text-muted-foreground tnum md:hidden">
                       {shortDate(t.created_at)} · {p?.fcSeen ?? 0}/{p?.fcTotal ?? 0} flashcards ·{" "}
@@ -631,7 +654,9 @@ function Index() {
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onSelect={() => setMoveTarget({ id: t.id, title: t.label, folder_id: t.folder_id })}
+                          onSelect={() =>
+                            setMoveTarget({ id: t.id, title: t.label, folder_id: t.folder_id })
+                          }
                           className="gap-2"
                         >
                           <FolderInput className="size-4" aria-hidden /> Mover para pasta

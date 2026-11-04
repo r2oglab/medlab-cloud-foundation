@@ -2,14 +2,15 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, Check, Layers, Loader2, RotateCcw, X } from "lucide-react";
+import { ArrowRight, Check, Layers, RotateCcw, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { QuestionStem } from "@/components/study/QuestionStem";
+import { AiWait } from "@/components/study/AiWait";
 import { cn } from "@/lib/utils";
 import { delatex } from "@/lib/delatex";
 import { splitVignette } from "@/lib/vignette";
-import { aiErrorMessage } from "@/lib/ai-busy";
+import { aiErrorMessage, aiRetryLabel, withAiRetry } from "@/lib/ai-busy";
 import { cleanTitle, useTopicsList } from "@/lib/topics-index";
 import {
   computeMistakes,
@@ -36,7 +37,8 @@ export const Route = createFileRoute("/_authenticated/erros")({
 });
 
 const LETTERS = ["A", "B", "C", "D"];
-const eyebrow = "font-sans text-[0.6875rem] font-medium uppercase tracking-[0.12em] text-muted-foreground";
+const eyebrow =
+  "font-sans text-[0.6875rem] font-medium uppercase tracking-[0.12em] text-muted-foreground";
 
 type Item = { mistake: Mistake; question: McqRow };
 
@@ -50,7 +52,10 @@ function relative(iso: string) {
 function ErrosPage() {
   const attempts = useAttempts();
   const topics = useTopicsList();
-  const { pending, resolved } = useMemo(() => computeMistakes(attempts.data ?? []), [attempts.data]);
+  const { pending, resolved } = useMemo(
+    () => computeMistakes(attempts.data ?? []),
+    [attempts.data],
+  );
   const ids = useMemo(() => pending.map((m) => m.questionId), [pending]);
   const questions = useMistakeQuestions(ids);
   const [topicFilter, setTopicFilter] = useState("todos");
@@ -84,7 +89,8 @@ function ErrosPage() {
     return [...map.entries()].sort((a, b) => b[1] - a[1]);
   }, [items]);
 
-  const visible = topicFilter === "todos" ? items : items.filter((it) => it.question.topic_id === topicFilter);
+  const visible =
+    topicFilter === "todos" ? items : items.filter((it) => it.question.topic_id === topicFilter);
   const loading = attempts.isLoading || (ids.length > 0 && questions.isLoading);
 
   if (session) {
@@ -112,7 +118,11 @@ function ErrosPage() {
       {loading ? (
         <div className="mt-10 space-y-4" aria-busy="true" aria-label="Carregando">
           {[80, 64, 72].map((w, i) => (
-            <div key={i} className="h-5 animate-pulse rounded bg-foreground/[0.06]" style={{ width: `${w}%` }} />
+            <div
+              key={i}
+              className="h-5 animate-pulse rounded bg-foreground/[0.06]"
+              style={{ width: `${w}%` }}
+            />
           ))}
         </div>
       ) : !items.length ? (
@@ -157,7 +167,8 @@ function ErrosPage() {
                         : "border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground",
                     )}
                   >
-                    {id === "todos" ? "Todos" : topicTitle(id)} <span className="tnum opacity-70">({n})</span>
+                    {id === "todos" ? "Todos" : topicTitle(id)}{" "}
+                    <span className="tnum opacity-70">({n})</span>
                   </button>
                 ))}
               </div>
@@ -215,8 +226,8 @@ function MistakeRow({
         {splitVignette(q.question).stem}
       </p>
       <p className="mt-2 text-xs text-muted-foreground tnum">
-        Errou {m.wrongCount}× · última vez {relative(m.lastWrongAt)} ·{" "}
-        {m.streak}/{RESOLVE_STREAK} acertos para sair
+        Errou {m.wrongCount}× · última vez {relative(m.lastWrongAt)} · {m.streak}/{RESOLVE_STREAK}{" "}
+        acertos para sair
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
         <Button size="sm" variant="outline" onClick={onPractice}>
@@ -228,10 +239,19 @@ function MistakeRow({
   );
 }
 
-function FlashcardButton({ mcqId, topicId, hasCard }: { mcqId: string; topicId: string; hasCard: boolean }) {
+function FlashcardButton({
+  mcqId,
+  topicId,
+  hasCard,
+}: {
+  mcqId: string;
+  topicId: string;
+  hasCard: boolean;
+}) {
   const create = useServerFn(flashcardFromMistake);
   const queryClient = useQueryClient();
   const [busy, setBusy] = useState(false);
+  const [retryMsg, setRetryMsg] = useState<string | null>(null);
   const [done, setDone] = useState(hasCard);
   useEffect(() => setDone(hasCard), [hasCard]);
 
@@ -243,29 +263,39 @@ function FlashcardButton({ mcqId, topicId, hasCard }: { mcqId: string; topicId: 
     );
   }
   return (
-    <Button
-      size="sm"
-      variant="outline"
-      disabled={busy}
-      onClick={async () => {
-        setBusy(true);
-        try {
-          await create({ data: { mcq_id: mcqId } });
-          setDone(true);
-          toast.success("Flashcard criado no tópico.");
-          void queryClient.invalidateQueries({ queryKey: ["mistake-questions"] });
-          void queryClient.invalidateQueries({ queryKey: ["topic", topicId] });
-          void queryClient.invalidateQueries({ queryKey: ["topics-progress"] });
-        } catch (e) {
-          toast.error(aiErrorMessage(e, "Não deu para criar o flashcard."));
-        } finally {
-          setBusy(false);
-        }
-      }}
-    >
-      {busy ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <Layers className="size-4" aria-hidden />}
-      {busy ? "Criando…" : "Criar flashcard"}
-    </Button>
+    <>
+      <Button
+        size="sm"
+        variant="outline"
+        disabled={busy}
+        onClick={async () => {
+          setBusy(true);
+          try {
+            await withAiRetry(
+              () => create({ data: { mcq_id: mcqId } }),
+              (s) => setRetryMsg(aiRetryLabel(s)),
+            );
+            setDone(true);
+            toast.success("Flashcard criado no tópico.");
+            void queryClient.invalidateQueries({ queryKey: ["mistake-questions"] });
+            void queryClient.invalidateQueries({ queryKey: ["topic", topicId] });
+            void queryClient.invalidateQueries({ queryKey: ["topics-progress"] });
+          } catch (e) {
+            toast.error(aiErrorMessage(e, "Não deu para criar o flashcard."));
+          } finally {
+            setBusy(false);
+            setRetryMsg(null);
+          }
+        }}
+      >
+        {/* Enquanto espera, o círculo e o tempo ficam só na linha ao lado */}
+        <Layers className="size-4" aria-hidden /> Criar flashcard
+      </Button>
+      <AiWait active={busy} label={retryMsg ?? "Escrevendo o flashcard"} />
+      <span aria-live="polite" className="sr-only">
+        {busy ? (retryMsg ?? "Criando o flashcard.") : ""}
+      </span>
+    </>
   );
 }
 
@@ -311,8 +341,18 @@ function PracticeSession({
     function onKey(e: KeyboardEvent) {
       const t = e.target as HTMLElement | null;
       if (e.ctrlKey || e.metaKey || e.altKey) return;
-      if (t?.closest("input, textarea, select, button, [contenteditable='true'], [role='dialog']")) return;
-      const map: Record<string, number> = { "1": 0, "2": 1, "3": 2, "4": 3, a: 0, b: 1, c: 2, d: 3 };
+      if (t?.closest("input, textarea, select, button, [contenteditable='true'], [role='dialog']"))
+        return;
+      const map: Record<string, number> = {
+        "1": 0,
+        "2": 1,
+        "3": 2,
+        "4": 3,
+        a: 0,
+        b: 1,
+        c: 2,
+        d: 3,
+      };
       const k = e.key.toLowerCase();
       if (k in map && !answered && map[k]! < q.options.length) {
         e.preventDefault();
@@ -346,7 +386,9 @@ function PracticeSession({
       >
         <div
           className="h-full rounded-full bg-foreground transition-[width] duration-300"
-          style={{ width: `${(Math.min(idx + (answered ? 1 : 0), items.length) / items.length) * 100}%` }}
+          style={{
+            width: `${(Math.min(idx + (answered ? 1 : 0), items.length) / items.length) * 100}%`,
+          }}
         />
       </div>
 
@@ -358,8 +400,8 @@ function PracticeSession({
             <span className="text-3xl text-muted-foreground">/{items.length}</span>
           </p>
           <p className="mx-auto mt-4 max-w-[46ch] text-sm text-muted-foreground">
-            As que você acertou contam para sair do caderno ({RESOLVE_STREAK} acertos seguidos). As que
-            errou continuam lá para a próxima rodada.
+            As que você acertou contam para sair do caderno ({RESOLVE_STREAK} acertos seguidos). As
+            que errou continuam lá para a próxima rodada.
           </p>
           <Button className="mt-6" variant="outline" onClick={onExit}>
             <RotateCcw className="size-4" aria-hidden /> Voltar ao caderno
@@ -391,7 +433,8 @@ function PracticeSession({
                     aria-label={`${LETTERS[oi]}: ${opt}${state === "correct" ? " (correta)" : state === "wrong" ? " (sua resposta, errada)" : ""}`}
                     className={cn(
                       "flex min-h-14 w-full items-center gap-3.5 rounded-lg border px-4 py-3 text-left text-[0.98rem] leading-snug transition-[background-color,border-color,transform] duration-150 disabled:cursor-default",
-                      state === "idle" && "border-border bg-card hover:border-foreground/30 active:scale-[0.99]",
+                      state === "idle" &&
+                        "border-border bg-card hover:border-foreground/30 active:scale-[0.99]",
                       state === "correct" && "border-tint-1-fg/40 bg-tint-1",
                       state === "wrong" && "border-tint-3-fg/40 bg-tint-3",
                       state === "dim" && "border-border bg-card opacity-60",
@@ -403,7 +446,8 @@ function PracticeSession({
                         "flex size-8 shrink-0 items-center justify-center rounded-full border text-[0.8125rem] font-semibold",
                         state === "correct" && "border-transparent bg-tint-1-fg text-background",
                         state === "wrong" && "border-transparent bg-tint-3-fg text-background",
-                        (state === "idle" || state === "dim") && "border-border text-muted-foreground",
+                        (state === "idle" || state === "dim") &&
+                          "border-border text-muted-foreground",
                       )}
                     >
                       {state === "correct" ? (
@@ -443,7 +487,8 @@ function PracticeSession({
           <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
             <FlashcardButton mcqId={q.id} topicId={q.topic_id} hasCard={withCard.has(q.id)} />
             <Button onClick={next} disabled={!answered}>
-              {idx === items.length - 1 ? "Ver resultado" : "Próxima"} <ArrowRight className="size-4" aria-hidden />
+              {idx === items.length - 1 ? "Ver resultado" : "Próxima"}{" "}
+              <ArrowRight className="size-4" aria-hidden />
             </Button>
           </div>
         </section>

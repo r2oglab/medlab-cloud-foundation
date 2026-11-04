@@ -44,7 +44,7 @@ export function AiWait({
       <span>{label}</span>
       <span
         aria-hidden
-        className="shrink-0 whitespace-nowrap font-mono text-xs tnum text-muted-foreground/80"
+        className="shrink-0 whitespace-nowrap font-mono text-xs tnum text-muted-foreground"
       >
         {formatElapsed(seconds)}
       </span>
