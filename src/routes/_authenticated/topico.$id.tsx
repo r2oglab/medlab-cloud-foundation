@@ -8,6 +8,7 @@ import {
   ArrowLeft,
   Ellipsis,
   FileDown,
+  FileStack,
   FileText,
   FolderInput,
   Loader2,
@@ -34,6 +35,8 @@ import { Flashcards } from "@/components/study/Flashcards";
 import { McqPractice } from "@/components/study/McqPractice";
 import { Esquema, type PracticeTarget } from "@/components/study/Esquema";
 import { ExportDialog } from "@/components/study/ExportDialog";
+import { SourcesDialog } from "@/components/study/SourcesDialog";
+import { useTopicSources } from "@/lib/topic-sources";
 import { Flowchart } from "@/components/study/Flowchart";
 import { Segmented } from "@/components/study/Segmented";
 import { ClinicalCase } from "@/components/study/ClinicalCase";
@@ -286,6 +289,8 @@ function TopicPage() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [moving, setMoving] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [sourcesOpen, setSourcesOpen] = useState(false);
+  const extraSources = useTopicSources(id);
   const essays = useEssays(id);
   const folders = useFolders();
   const [renaming, setRenaming] = useState(false);
@@ -579,6 +584,9 @@ function TopicPage() {
               <DropdownMenuItem onSelect={() => setMoving(true)} className="gap-2">
                 <FolderInput className="size-4" aria-hidden /> Mover para pasta
               </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setSourcesOpen(true)} className="gap-2">
+                <FileStack className="size-4" aria-hidden /> Fontes do tópico
+              </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => setExporting(true)} className="gap-2">
                 <FileDown className="size-4" aria-hidden /> Exportar PDF ou Word
               </DropdownMenuItem>
@@ -617,7 +625,31 @@ function TopicPage() {
         ) : (
           <>Criado em {created}</>
         )}
+        {(extraSources.data?.length ?? 0) > 0 && (
+          <>
+            {" · "}
+            <button
+              type="button"
+              onClick={() => setSourcesOpen(true)}
+              className="text-foreground/80 underline decoration-border underline-offset-4 hover:decoration-foreground"
+            >
+              + {extraSources.data!.length} fonte{extraSources.data!.length > 1 ? "s" : ""}
+            </button>
+          </>
+        )}
       </p>
+
+      <SourcesDialog
+        open={sourcesOpen}
+        onOpenChange={setSourcesOpen}
+        topicId={id}
+        original={{ name: d.topic.source_name, kind: d.topic.source_kind }}
+        onApplied={async () => {
+          // Recarrega resumo, flashcards e questões, e remonta o editor com o resumo novo
+          await queryClient.invalidateQueries({ queryKey: ["topic", id] });
+          setSummaryVersion((v) => v + 1);
+        }}
+      />
 
       <ExportDialog
         open={exporting}

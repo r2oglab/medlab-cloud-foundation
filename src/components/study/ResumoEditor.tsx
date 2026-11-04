@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Highlight from "@tiptap/extension-highlight";
@@ -48,6 +49,7 @@ export function ResumoEditor({
   /** Chamado ao clicar em Concluir, já com o conteúdo salvo. */
   onEditingDone?: (html: string) => void;
 }) {
+  const queryClient = useQueryClient();
   const [editing, setEditing] = useState(startEditing);
   const [status, setStatus] = useState<"idle" | "saving" | "saved">("idle");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -62,6 +64,13 @@ export function ResumoEditor({
       .eq("topic_id", topicId)
       .eq("type", "summary");
     setStatus(error ? "idle" : "saved");
+    // Mantém a cópia da página em dia (índice, Ferramentas IA e exportar usam o resumo
+    // dela; sem isso, inserir uma tabela logo depois de grifar apagava os grifos novos)
+    if (!error) {
+      queryClient.setQueryData<{ summaryHtml?: string } | undefined>(["topic", topicId], (old) =>
+        old ? { ...old, summaryHtml: content } : old,
+      );
+    }
   }
 
   const editor = useEditor({
