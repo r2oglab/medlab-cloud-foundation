@@ -518,6 +518,7 @@ export type Database = {
       }
       topic_notes: {
         Row: {
+          anchor_text: string | null
           block_index: number
           content: string
           created_at: string
@@ -526,6 +527,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          anchor_text?: string | null
           block_index: number
           content: string
           created_at?: string
@@ -534,6 +536,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          anchor_text?: string | null
           block_index?: number
           content?: string
           created_at?: string
