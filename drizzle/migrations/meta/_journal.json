@@ -78,6 +78,13 @@
       "when": 1793673037435,
       "tag": "0010_20261002000000_source_claims",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793889423280,
+      "tag": "0011_topic_notes_anchor_text",
+      "breakpoints": true
     }
   ]
 }
